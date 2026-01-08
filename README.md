@@ -1,6 +1,11 @@
 [DOCUMENTACION_PROYECTO.md](https://github.com/user-attachments/files/24502484/DOCUMENTACION_PROYECTO.md)
 # Documentación del Proyecto Boletín 360
 
+La app esta siendo elaborada por el equipo TecnoChiguire de la UNETI
+Benjamin Dumont
+Roiner Martinez 
+Samuel Jimenez 
+
 ## Descripción General
 Boletín 360 es una aplicación web integral para la gestión escolar. Permite administrar estudiantes, docentes, materias, secciones, años escolares y calificaciones. El sistema está diseñado con una arquitectura moderna separando el Frontend y el Backend, garantizando escalabilidad y seguridad.
 
