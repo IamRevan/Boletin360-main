@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// Clave secreta para firmar los tokens JWT. Debe coincidir con la variable de entorno o usar un valor por defecto (INSEGURO PARA PRODUCCIÓN).
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this_in_production';
+import { config } from '../config';
+
+// Clave secreta obtenida de configuración validada
+const JWT_SECRET = config.JWT_SECRET;
 
 // Extensión de la interfaz Request de Express para incluir el usuario decodificado.
 export interface AuthRequest extends Request {

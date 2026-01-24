@@ -4,17 +4,29 @@ import React, { useState, useMemo, useRef } from 'react';
 import { useAppState } from '@/state/AppContext';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { PrinterIcon, SearchIcon, FileTextIcon } from '@/components/Icons';
+import { PrinterIcon, SearchIcon, FileTextIcon, DownloadIcon } from '@/components/Icons';
+import { ActaReport } from '@/components/reports/ActaReport';
+
+type ReportType = 'boletin' | 'acta';
 
 export default function ReportsPage() {
     const { students, añosEscolares, grados, secciones, isLoading: isAppLoading } = useAppState();
-    const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
-    const [selectedAnoId, setSelectedAnoId] = useState<number | null>(null);
-    const [reportData, setReportData] = useState<any | null>(null);
+
+    // Estados generales
+    const [reportType, setReportType] = useState<ReportType>('boletin');
     const [isLoadingReport, setIsLoadingReport] = useState(false);
+    const [reportData, setReportData] = useState<any | null>(null);
+    const [selectedAnoId, setSelectedAnoId] = useState<number | null>(null);
+
+    // Estados Boletín Individual
+    const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Filtrar estudiantes para el buscador
+    // Estados Acta de Evaluación
+    const [selectedGradoId, setSelectedGradoId] = useState<number | null>(null);
+    const [selectedSeccionId, setSelectedSeccionId] = useState<number | null>(null);
+
+    // Filtrar estudiantes para el buscador (Boletín)
     const filteredStudents = useMemo(() => {
         if (!searchTerm) return [];
         const lowerTerm = searchTerm.toLowerCase();
@@ -22,21 +34,30 @@ export default function ReportsPage() {
             s.nombres.toLowerCase().includes(lowerTerm) ||
             s.apellidos.toLowerCase().includes(lowerTerm) ||
             s.cedula.includes(searchTerm)
-        ).slice(0, 10); // Limitar a 10 resultados
+        ).slice(0, 10);
     }, [students, searchTerm]);
 
     const handleGenerateReport = async () => {
-        if (!selectedStudentId || !selectedAnoId) return;
+        if (reportType === 'boletin') {
+            if (!selectedStudentId || !selectedAnoId) return;
+        } else {
+            if (!selectedAnoId || !selectedGradoId || !selectedSeccionId) return;
+        }
 
         setIsLoadingReport(true);
+        setReportData(null);
+
         try {
-            const response = await api.get('/reports/boletin', {
-                params: { studentId: selectedStudentId, anoEscolarId: selectedAnoId }
-            });
+            const endpoint = reportType === 'boletin' ? '/reports/boletin' : '/reports/acta';
+            const params = reportType === 'boletin'
+                ? { studentId: selectedStudentId, anoEscolarId: selectedAnoId }
+                : { anoEscolarId: selectedAnoId, gradoId: selectedGradoId, seccionId: selectedSeccionId };
+
+            const response = await api.get(endpoint, { params });
             setReportData(response.data);
         } catch (error) {
             console.error("Error fetching report", error);
-            alert("No se pudo generar el boletín. Verifique que existan notas para este período.");
+            alert("No se pudo generar el reporte. Verifique los datos.");
             setReportData(null);
         } finally {
             setIsLoadingReport(false);
@@ -47,86 +68,142 @@ export default function ReportsPage() {
         window.print();
     };
 
-    // Calcular definitiva de una materia (promedio simple de lapsos)
-    const calculateDefinitive = (materia: any) => {
-        let total = 0;
-        let count = 0;
-        const lapsos = [materia.lapso1, materia.lapso2, materia.lapso3];
-
-        lapsos.forEach(lapso => {
-            if (Array.isArray(lapso) && lapso.length > 0) {
-                // Asumimos que la nota del lapso es el promedio de sus evaluaciones o hay una logica especifica?
-                // En el esquema actual, lapso es un array de evaluaciones.
-                // Vamos a sumar ponderaciones. Si ponderacion es sobre 20, sumamos notas.
-                const lapsoNota = lapso.reduce((acc: number, curr: any) => acc + (curr.nota * (curr.ponderacion / 100)), 0); // Si ponderacion es %, ejemplo 20 pts * 0.2
-                // Simplificación: Si el sistema usa promedio directo de notas:
-                const promedioLapso = lapso.reduce((acc: number, curr: any) => acc + curr.nota, 0) / (lapso.length || 1);
-
-                // AJUSTE: Basado en el sistema venezolano común, a veces es suma directa del lapso o promedio.
-                // Vamos a usar Promedio Simple de las evaluaciones del lapso para obtener "Nota Lapso" por ahora.
-                total += promedioLapso;
-                count++;
-            }
-        });
-
-        if (count === 0) return 0;
-        return (total / count).toFixed(2);
+    const handleDownloadExcel = () => {
+        if (!selectedAnoId || !selectedGradoId || !selectedSeccionId) return;
+        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/reports/export-xlsx?anoEscolarId=${selectedAnoId}&gradoId=${selectedGradoId}&seccionId=${selectedSeccionId}`;
+        window.open(url, '_blank');
     };
 
-    // Helper para nota de lapso
+    // Helper para nota de lapso (Boletín)
     const getLapsoNota = (lapso: any[]) => {
-        if (!lapso || lapso.length === 0) return '-';
+        if (!lapso || lapso.length === 0) return '';
         const sum = lapso.reduce((acc, curr) => acc + Number(curr.nota), 0);
-        return (sum / lapso.length).toFixed(1);
+        return (sum / lapso.length).toFixed(0);
+    };
+
+    const getDefinitiva = (materia: any) => {
+        const n1 = getLapsoNota(materia.lapso1);
+        const n2 = getLapsoNota(materia.lapso2);
+        const n3 = getLapsoNota(materia.lapso3);
+
+        if (!n1 && !n2 && !n3) return '';
+
+        let sum = 0;
+        let count = 0;
+        if (n1) { sum += Number(n1); count++; }
+        if (n2) { sum += Number(n2); count++; }
+        if (n3) { sum += Number(n3); count++; }
+
+        if (count === 0) return '';
+        return (sum / count).toFixed(0);
+    };
+
+    const isGenerateDisabled = () => {
+        if (isLoadingReport) return true;
+        if (!selectedAnoId) return true;
+        if (reportType === 'boletin') return !selectedStudentId;
+        if (reportType === 'acta') return !selectedGradoId || !selectedSeccionId;
+        return false;
     };
 
     return (
         <div className="space-y-6">
             {/* Controles de Selección - Ocultos al imprimir */}
             <div className="bg-moon-component p-6 rounded-xl border border-moon-border print:hidden">
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-                    <FileTextIcon /><span className="ml-2">Generador de Boletines</span>
-                </h2>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-white flex items-center">
+                        <FileTextIcon /><span className="ml-2">Generador de Reportes</span>
+                    </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Buscador de Estudiante */}
-                    <div className="relative">
-                        <label className="block text-sm font-medium text-moon-text-secondary mb-2">Estudiante</label>
-                        <div className="flex items-center bg-moon-bg rounded-lg border border-moon-border px-3 py-2">
-                            <SearchIcon />
-                            <input
-                                type="text"
-                                placeholder="Buscar por nombre o cédula..."
-                                className="bg-transparent border-none focus:outline-none text-moon-text ml-2 w-full"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        {searchTerm && filteredStudents.length > 0 && !selectedStudentId && (
-                            <div className="absolute z-10 w-full bg-moon-component border border-moon-border mt-1 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                                {filteredStudents.map(student => (
-                                    <button
-                                        key={student.id}
-                                        onClick={() => {
-                                            setSelectedStudentId(student.id);
-                                            setSearchTerm(`${student.nombres} ${student.apellidos}`);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-moon-nav text-moon-text flex justify-between items-center"
-                                    >
-                                        <span>{student.nombres} {student.apellidos}</span>
-                                        <span className="text-xs text-moon-text-secondary">{student.cedula}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        {selectedStudentId && (
-                            <div className="mt-2 text-sm text-green-400 font-medium">
-                                Seleccionado: {students.find(s => s.id === selectedStudentId)?.nombres}
-                            </div>
-                        )}
+                    {/* Selector de Tipo */}
+                    <div className="flex bg-moon-bg rounded-lg p-1 border border-moon-border">
+                        <button
+                            onClick={() => { setReportType('boletin'); setReportData(null); }}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${reportType === 'boletin' ? 'bg-blue-600 text-white shadow-lg' : 'text-moon-text hover:text-white'}`}
+                        >
+                            Boletín Individual
+                        </button>
+                        <button
+                            onClick={() => { setReportType('acta'); setReportData(null); }}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${reportType === 'acta' ? 'bg-blue-600 text-white shadow-lg' : 'text-moon-text hover:text-white'}`}
+                        >
+                            Acta de Evaluación
+                        </button>
                     </div>
+                </div>
 
-                    {/* Selector de Año Escolar */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Campos según tipo */}
+                    {reportType === 'boletin' ? (
+                        // Buscador de Estudiante
+                        <div className="relative md:col-span-2">
+                            <label className="block text-sm font-medium text-moon-text-secondary mb-2">Estudiante</label>
+                            <div className="flex items-center bg-moon-bg rounded-lg border border-moon-border px-3 py-2">
+                                <SearchIcon />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por nombre o cédula..."
+                                    className="bg-transparent border-none focus:outline-none text-moon-text ml-2 w-full"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            {searchTerm && filteredStudents.length > 0 && !selectedStudentId && (
+                                <div className="absolute z-10 w-full bg-moon-component border border-moon-border mt-1 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                    {filteredStudents.map(student => (
+                                        <button
+                                            key={student.id}
+                                            onClick={() => {
+                                                setSelectedStudentId(student.id);
+                                                setSearchTerm(`${student.nombres} ${student.apellidos}`);
+                                            }}
+                                            className="w-full text-left px-4 py-2 hover:bg-moon-nav text-moon-text flex justify-between items-center"
+                                        >
+                                            <span>{student.nombres} {student.apellidos}</span>
+                                            <span className="text-xs text-moon-text-secondary">{student.cedula}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {selectedStudentId && (
+                                <div className="mt-2 text-sm text-green-400 font-medium">
+                                    Seleccionado: {students.find(s => s.id === selectedStudentId)?.nombres}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        // Selectores de Grado y Sección
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-moon-text-secondary mb-2">Grado</label>
+                                <select
+                                    className="w-full bg-moon-bg border border-moon-border text-moon-text rounded-lg px-3 py-2 focus:outline-none focus:border-moon-primary"
+                                    value={selectedGradoId || ''}
+                                    onChange={(e) => setSelectedGradoId(Number(e.target.value))}
+                                >
+                                    <option value="" style={{ backgroundColor: '#1a1d2d' }}>Seleccionar...</option>
+                                    {grados.map(g => (
+                                        <option key={g.id_grado} value={g.id_grado} style={{ backgroundColor: '#1a1d2d' }}>{g.nombre_grado}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-moon-text-secondary mb-2">Sección</label>
+                                <select
+                                    className="w-full bg-moon-bg border border-moon-border text-moon-text rounded-lg px-3 py-2 focus:outline-none focus:border-moon-primary"
+                                    value={selectedSeccionId || ''}
+                                    onChange={(e) => setSelectedSeccionId(Number(e.target.value))}
+                                >
+                                    <option value="" style={{ backgroundColor: '#1a1d2d' }}>Seleccionar...</option>
+                                    {secciones.map(s => (
+                                        <option key={s.id_seccion} value={s.id_seccion} style={{ backgroundColor: '#1a1d2d' }}>{s.nombre_seccion}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Selector de Año Escolar (Común) */}
                     <div>
                         <label className="block text-sm font-medium text-moon-text-secondary mb-2">Año Escolar</label>
                         <select
@@ -145,94 +222,224 @@ export default function ReportsPage() {
                     <div className="flex items-end">
                         <button
                             onClick={handleGenerateReport}
-                            disabled={!selectedStudentId || !selectedAnoId || isLoadingReport}
+                            disabled={isGenerateDisabled()}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isLoadingReport ? 'Generando...' : 'Ver Boletín'}
+                            {isLoadingReport ? 'Generando...' : (reportType === 'boletin' ? 'Ver Boletín' : 'Ver Acta')}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Vista Previa del Boletín */}
+            {/* Vista Previa */}
             {reportData && (
-                <div className="animate-fade-in">
-                    {/* Botón Imprimir Flotante */}
-                    <div className="flex justify-end mb-4 print:hidden">
+                <div className="animate-fade-in pb-10">
+                    {/* Botonera Flotante */}
+                    <div className="flex justify-end mb-4 print:hidden gap-2">
+                        {reportType === 'acta' && (
+                            <button
+                                onClick={handleDownloadExcel}
+                                className="flex items-center bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
+                            >
+                                <DownloadIcon />
+                                <span className="ml-2">Excel (XLSX)</span>
+                            </button>
+                        )}
                         <button
                             onClick={handlePrint}
-                            className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
+                            className="flex items-center bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
                         >
                             <PrinterIcon />
-                            <span className="ml-2">Imprimir / Guardar PDF</span>
+                            <span className="ml-2">Imprimir PDF</span>
                         </button>
                     </div>
 
-                    {/* Hoja del Boletín (Diseño para Impresión) */}
-                    <div className="bg-white text-black p-10 rounded-sm shadow-2xl max-w-4xl mx-auto print:shadow-none print:w-full print:max-w-none print:p-0">
+                    {/* Renderizado Condicional */}
+                    {reportType === 'acta' ? (
+                        <ActaReport data={reportData} />
+                    ) : (
+                        // Diseño Boletín - Ajustado para parecerse a la imagen de referencia #2
+                        <div className="bg-white text-black mx-auto print:mx-0 w-[21.59cm] min-h-[27.94cm] p-8 shadow-2xl print:shadow-none font-sans text-xs flex flex-col justify-between">
 
-                        {/* Membrete */}
-                        <div className="text-center border-b-2 border-black pb-4 mb-6">
-                            <h1 className="text-2xl font-bold uppercase">República Bolivariana de Venezuela</h1>
-                            <h2 className="text-xl font-semibold">Ministerio del Poder Popular para la Educación</h2>
-                            <h3 className="text-lg">U.E. "Boletín360 Academy"</h3>
-                            <p className="text-sm mt-2">Informe de Rendimiento Académico</p>
-                        </div>
+                            <div>
+                                {/* Header Boletín */}
+                                <div className="flex justify-between items-start mb-2 px-4">
+                                    <div className="w-20 h-24 flex items-center justify-center">
+                                        {/* Placeholder si no hay imagen específica, o escudo de Venezuela si se encuentra */}
+                                    </div>
+                                    <div className="text-center flex-1 mx-2">
+                                        <h2 className="font-bold text-xs tracking-wide">REPUBLICA BOLIVARIANA DE VENEZUELA</h2>
+                                        <h2 className="font-bold text-xs tracking-wide">MINISTERIO DEL PODER POPULAR PARA LA EDUCACION</h2>
+                                        <h1 className="font-extrabold text-sm mt-1">U.E.N "PEDRO EMILIO COLL"</h1>
+                                        <h3 className="font-bold text-xs mt-1">DEPARTAMENTO DE EVALUACION</h3>
+                                    </div>
+                                    <div className="w-20 h-24 flex items-center justify-center">
+                                        <img src="/images/logo_school.png" alt="Logo Escuela" className="w-full h-full object-contain" />
+                                    </div>
+                                </div>
 
-                        {/* Datos del Estudiante con Foto */}
-                        <div className="flex border border-black mb-8">
-                            <div className="flex-1 p-4 text-sm whitespace-nowrap">
-                                <p><span className="font-bold">Estudiante:</span> {reportData.student.apellidos}, {reportData.student.nombres}</p>
-                                <p><span className="font-bold">Cédula:</span> {reportData.student.nacionalidad}-{reportData.student.cedula}</p>
-                                <p><span className="font-bold">Año Escolar:</span> {reportData.anoEscolar.nombre}</p>
-                                <p><span className="font-bold">Grado/Sección (Histórico):</span> {reportData.boletin[0]?.nombre_grado || 'N/A'} "{reportData.boletin[0]?.nombre_seccion || 'N/A'}"</p>
+                                {/* Título y Año */}
+                                <div className="mb-4">
+                                    <div className="flex justify-end pr-8 mb-1">
+                                        <div className="text-right">
+                                            <div className="font-bold text-[10px] border-b border-black inline-block">{reportData.boletin[0]?.nombre_grado || '1er'} Año AÑO</div>
+                                            <br />
+                                            <div className="font-bold text-[10px] border-b border-black inline-block">SECCION: "{reportData.boletin[0]?.nombre_seccion || 'A'}"</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-center border-t border-black pt-1 mx-4">
+                                        <h3 className="font-bold uppercase text-[11px] tracking-widest">REGISTRO INFORMATIVO DE LOS PROCESOS APRENDIZAJE</h3>
+                                        <h2 className="text-lg font-extrabold mt-1">Año Escolar: {reportData.anoEscolar.nombre}</h2>
+                                    </div>
+                                </div>
+
+                                {/* Datos Estudiante */}
+                                <div className="flex items-end mb-4 text-xs font-bold uppercase gap-2 border-b-2 border-black pb-1">
+                                    <span className="mb-0.5">ESTUDIANTE</span>
+                                    <div className="flex-1 text-center text-sm font-extrabold pb-0.5 border-b border-black">
+                                        {reportData.student.apellidos} {reportData.student.nombres}
+                                    </div>
+                                    <span className="mb-0.5">C.I:</span>
+                                    <div className="w-32 text-center text-sm font-extrabold pb-0.5 border-b border-black">
+                                        {reportData.student.nacionalidad}-{reportData.student.cedula}
+                                    </div>
+                                </div>
+
+                                {/* Tabla de Notas */}
+                                <div className="mb-4">
+                                    <table className="w-full border-collapse border-2 border-black text-xs font-bold uppercase">
+                                        <thead>
+                                            <tr>
+                                                <th rowSpan={2} className="border-2 border-black px-2 py-1 text-center bg-white align-middle w-auto">ASIGNATURAS</th>
+                                                <th colSpan={3} className="border-2 border-black px-2 py-1 text-center bg-white border-b-0 w-[30%]">LAPSO</th>
+                                                <th rowSpan={2} className="border-2 border-black px-2 py-1 text-center bg-white w-[10%] align-middle">DEF</th>
+                                            </tr>
+                                            <tr>
+                                                <th className="border-2 border-black px-2 py-1 text-center w-[10%]">1°</th>
+                                                <th className="border-2 border-black px-2 py-1 text-center w-[10%]">2°</th>
+                                                <th className="border-2 border-black px-2 py-1 text-center w-[10%]">3°</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {/* Filas de materias reales */}
+                                            {reportData.boletin.map((materia: any, index: number) => (
+                                                <tr key={index}>
+                                                    <td className="border-2 border-black px-2 py-1.5 text-left">{materia.nombre_materia}</td>
+                                                    <td className="border-2 border-black px-2 py-1.5 text-center text-sm">{getLapsoNota(materia.lapso1)}</td>
+                                                    <td className="border-2 border-black px-2 py-1.5 text-center text-sm">{getLapsoNota(materia.lapso2)}</td>
+                                                    <td className="border-2 border-black px-2 py-1.5 text-center text-sm">{getLapsoNota(materia.lapso3)}</td>
+                                                    <td className="border-2 border-black px-2 py-1.5 text-center text-sm font-extrabold">{getDefinitiva(materia)}</td>
+                                                </tr>
+                                            ))}
+
+                                            {/* Relleno para mantener altura constante (ej. 13 filas total incluyendo promedio) */}
+                                            {[...Array(Math.max(0, 11 - reportData.boletin.length))].map((_, i) => (
+                                                <tr key={`fill-${i}`}>
+                                                    <td className="border-2 border-black px-2 py-1.5 text-left text-transparent">.</td>
+                                                    <td className="border-2 border-black px-2 py-1.5"></td>
+                                                    <td className="border-2 border-black px-2 py-1.5"></td>
+                                                    <td className="border-2 border-black px-2 py-1.5"></td>
+                                                    <td className="border-2 border-black px-2 py-1.5"></td>
+                                                </tr>
+                                            ))}
+
+                                            {/* Promedio */}
+                                            <tr className="bg-gray-100 print:bg-gray-100">
+                                                <td className="border-2 border-black px-2 py-1.5 text-left">PROMEDIO DE CALIFICACION LAPSO</td>
+                                                <td className="border-2 border-black px-2 py-1.5 text-center font-bold">
+                                                    {(reportData.boletin.reduce((acc: number, m: any) => acc + Number(getLapsoNota(m.lapso1) || 0), 0) / (reportData.boletin.filter((m: any) => getLapsoNota(m.lapso1)).length || 1)).toFixed(0)}
+                                                </td>
+                                                <td className="border-2 border-black px-2 py-1.5 text-center font-bold">
+                                                    {(reportData.boletin.reduce((acc: number, m: any) => acc + Number(getLapsoNota(m.lapso2) || 0), 0) / (reportData.boletin.filter((m: any) => getLapsoNota(m.lapso2)).length || 1)).toFixed(0)}
+                                                </td>
+                                                <td className="border-2 border-black px-2 py-1.5 text-center font-bold"></td>
+                                                <td className="border-2 border-black px-2 py-1.5 text-center font-bold"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Materia Pendiente */}
+                                <div className="mb-4">
+                                    <table className="w-full border-collapse border-2 border-black text-xs font-bold uppercase">
+                                        <thead>
+                                            <tr>
+                                                <th className="border-2 border-black px-2 py-1 text-center bg-gray-100 print:bg-gray-100 w-1/3">MATERIA PENDIENTE</th>
+                                                <th className="border-2 border-black px-2 py-1 text-center w-12">1°</th>
+                                                <th className="border-2 border-black px-2 py-1 text-center w-12">2°</th>
+                                                <th className="border-2 border-black px-2 py-1 text-center w-12">3°</th>
+                                                <th className="border-2 border-black px-2 py-1 text-center w-16">4°</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                                <td className="border-2 border-black px-2 py-2"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                            {/* Marco para Foto */}
-                            <div className="w-32 border-l border-black flex flex-col justify-center items-center p-2">
-                                <div className="w-24 h-28 border border-dashed border-gray-400 flex items-center justify-center">
-                                    <span className="text-xs text-gray-400 text-center">Pegar Foto Aqui</span>
+
+                            {/* Footer / Firmas */}
+                            <div>
+                                <div className="border-2 border-black mb-2">
+                                    {/* Fecha Entrega */}
+                                    <div className="grid grid-cols-[1fr_3fr] border-b-2 border-black h-8">
+                                        <div className="border-r-2 border-black px-2 flex items-center font-bold bg-white print:bg-white">FECHA DE ENTREGA</div>
+                                        <div className="grid grid-cols-3 h-full">
+                                            <div className="border-r-2 border-black"></div>
+                                            <div className="border-r-2 border-black"></div>
+                                            <div></div>
+                                        </div>
+                                    </div>
+                                    {/* Profesor Guia */}
+                                    <div className="grid grid-cols-[1fr_3fr] border-b-2 border-black h-12">
+                                        <div className="border-r-2 border-black px-2 flex items-center justify-center font-bold text-center">PROFESOR GUIA</div>
+                                        <div className="grid grid-cols-3 h-full">
+                                            <div className="border-r-2 border-black"></div>
+                                            <div className="border-r-2 border-black"></div>
+                                            <div></div>
+                                        </div>
+                                    </div>
+                                    {/* Representante */}
+                                    <div className="grid grid-cols-[1fr_3fr] border-b-2 border-black h-12">
+                                        <div className="border-r-2 border-black px-2 flex items-center justify-center font-bold text-center">REPRESENTANTE</div>
+                                        <div className="grid grid-cols-3 h-full">
+                                            <div className="border-r-2 border-black"></div>
+                                            <div className="border-r-2 border-black"></div>
+                                            <div></div>
+                                        </div>
+                                    </div>
+                                    {/* Observaciones */}
+                                    <div className="grid grid-cols-[1fr_3fr] h-20">
+                                        <div className="border-r-2 border-black px-2 flex items-center justify-center font-bold text-center">OBSERVACIONES</div>
+                                        <div className="grid grid-cols-3 h-full">
+                                            <div className="border-r-2 border-black"></div>
+                                            <div className="border-r-2 border-black"></div>
+                                            <div></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                {/* Texto Legal */}
+                                <div className="text-justify text-[9px] leading-tight font-medium">
+                                    <p>Articulo 109. (RLOE): "La asistencia a clases es obligatoria. El porcentaje mínimo de asistencia para optar a la aprobación de un grado, área, asignatura o similar, según el caso, será del setenta y cinco por ciento (75%). Queda a salvo lo que se determine en el articulo 60 de este Reglamento"</p>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Tabla de Notas */}
-                        <table className="w-full border-collapse border border-black text-sm">
-                            <thead>
-                                <tr className="bg-gray-200">
-                                    <th className="border border-black px-2 py-1 text-left">Asignatura</th>
-                                    <th className="border border-black px-2 py-1 w-20 text-center">Lapso 1</th>
-                                    <th className="border border-black px-2 py-1 w-20 text-center">Lapso 2</th>
-                                    <th className="border border-black px-2 py-1 w-20 text-center">Lapso 3</th>
-                                    <th className="border border-black px-2 py-1 w-20 text-center font-bold">Def.</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {reportData.boletin.map((materia: any, index: number) => (
-                                    <tr key={index}>
-                                        <td className="border border-black px-2 py-1">{materia.nombre_materia}</td>
-                                        <td className="border border-black px-2 py-1 text-center">{getLapsoNota(materia.lapso1)}</td>
-                                        <td className="border border-black px-2 py-1 text-center">{getLapsoNota(materia.lapso2)}</td>
-                                        <td className="border border-black px-2 py-1 text-center">{getLapsoNota(materia.lapso3)}</td>
-                                        <td className="border border-black px-2 py-1 text-center font-bold">{((Number(getLapsoNota(materia.lapso1)) + Number(getLapsoNota(materia.lapso2)) + Number(getLapsoNota(materia.lapso3))) / 3).toFixed(1)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        {/* Firmas */}
-                        <div className="mt-20 grid grid-cols-2 gap-20 text-center">
-                            <div className="border-t border-black pt-2">
-                                <p>Director(a)</p>
-                            </div>
-                            <div className="border-t border-black pt-2">
-                                <p>Docente Guía</p>
-                            </div>
-                        </div>
-
-                        <div className="mt-10 text-xs text-center text-gray-500">
-                            Generado automáticamente por el sistema Boletín360 el {new Date().toLocaleDateString()}.
-                        </div>
-                    </div>
+                    )}
                 </div>
             )}
         </div>

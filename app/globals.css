@@ -29,3 +29,32 @@ body {
   color: var(--color-moon-text);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  body {
+    background: white;
+    color: black;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Hide headers and footers that browsers might add */
+  header, footer, nav, aside {
+    display: none !important; 
+  }
+  
+  /* Ensure main content takes full width */
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+  .print\:w-full {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}

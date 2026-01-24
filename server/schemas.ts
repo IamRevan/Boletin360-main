@@ -6,7 +6,7 @@ export const CreateUserSchema = z.object({
     apellidos: z.string().min(1, "Apellidos son requeridos"),
     email: z.string().email("Dirección de correo inválida"),
     password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
-    role: z.enum(['Admin', 'Docente']),
+    role: z.enum(['Admin', 'Director', 'Control de Estudios', 'Docente']),
     teacherId: z.number().nullable().optional(), // ID opcional si el usuario es un docente
 });
 
@@ -16,7 +16,7 @@ export const UpdateUserSchema = z.object({
     apellidos: z.string().min(1, "Apellidos son requeridos"),
     email: z.string().email("Dirección de correo inválida"),
     password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional().or(z.literal('')), // Permite string vacío para no cambiar contraseña
-    role: z.enum(['Admin', 'Docente']),
+    role: z.enum(['Admin', 'Director', 'Control de Estudios', 'Docente']),
     teacherId: z.number().nullable().optional(),
 });
 
@@ -48,4 +48,21 @@ export const TeacherSchema = z.object({
 export const LoginSchema = z.object({
     email: z.string().email(),
     password: z.string().min(1),
+});
+
+// Validación de Nota individual (0-20)
+const GradeItemSchema = z.object({
+    nombre: z.string(),
+    nota: z.number().min(0, "La nota mínima es 0").max(20, "La nota máxima es 20"),
+    ponderacion: z.number().min(0).max(100),
+});
+
+// Esquema para sincronización de calificaciones
+export const GradeSyncSchema = z.object({
+    studentId: z.number(),
+    materiaId: z.number(),
+    añoId: z.number(),
+    lapso1: z.array(GradeItemSchema),
+    lapso2: z.array(GradeItemSchema),
+    lapso3: z.array(GradeItemSchema),
 });

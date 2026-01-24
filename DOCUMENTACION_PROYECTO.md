@@ -3,113 +3,103 @@
 ## Descripción General
 Boletín 360 es una aplicación web integral para la gestión escolar. Permite administrar estudiantes, docentes, materias, secciones, años escolares y calificaciones. El sistema está diseñado con una arquitectura moderna separando el Frontend y el Backend, garantizando escalabilidad y seguridad.
 
-## Tecnologías Utilizadas
+## Tecnologías Utilizadas (Stack Tecnológico)
+
+El proyecto utiliza una pila de tecnologías robusta y moderna, preparada para producción mediante contenedores:
 
 ### Frontend
-- **Framework**: [Next.js](https://nextjs.org/) (React)
-- **Lenguaje**: TypeScript
-- **Estilos**: Tailwind CSS (vía postcss)
-- **Estado Global**: (Gestión de estado propia/React Context)
+-   **Framework**: [Next.js](https://nextjs.org/) (React 19)
+-   **Lenguaje**: TypeScript
+-   **Estilos**: Tailwind CSS 4
+-   **Iconos**: Componentes SVG personalizados
+-   **HTTP Client**: Axios
 
 ### Backend
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Base de Datos**: PostgreSQL
-- **ORM/Driver**: `pg` (node-postgres)
-- **Autenticación**: JWT (JSON Web Tokens) y Bcrypt para hashing de contraseñas
-- **Validación**: Zod
+-   **Runtime**: Node.js
+-   **Framework**: Express.js
+-   **Base de Datos**: PostgreSQL 15
+-   **ORM**: [Prisma](https://www.prisma.io/) (Esquema definido, disponible para migración) / Controlador nativo `pg`
+-   **Autenticación**: JWT (JSON Web Tokens) + Bcrypt
+-   **Validación**: Zod
+-   **Auditoría**: Sistema de logging de acciones críticas
+
+### Infraestructura y Despliegue
+-   **Containerización**: Docker & Docker Compose
+-   **Servidor Web / Proxy**: Nginx (Alpine)
+-   **Gestor de Procesos**: PM2 (para entornos sin Docker)
 
 ## Características Principales
 
-### 1. Autenticación y Seguridad
-- **Login Seguro**: Implementación de JWT para sesiones seguras.
-- **Roles de Usuario**: Soporte para roles (e.g., Administrador, Docente).
-- **Protección de Rutas**: Middleware para verificar tokens y permisos en el backend.
-- **Hashing de Contraseñas**: Uso de `bcrypt` para almacenar contraseñas de forma segura.
+### 1. Autenticación y RBAC (Control de Acceso Basado en Roles)
+-   **Roles**: Administrador, Director, Control de Estudios, Docente.
+-   **Seguridad**: Rutas protegidas por middleware de verificación de JWT y Roles.
 
-### 2. Gestión de Entudiantes (CRUD Completo)
-- Registro completo con datos personales (Cédula, Nombres, Grado, Sección, etc.).
-- **Soft Delete**: Los estudiantes eliminados no se borran físicamente, sino que se marcan como "eliminados" (auditable).
-- Validación de datos estrictas con esquemas Zod.
+### 2. Gestión Académica
+-   **Estudiantes**: CRUD completo con Soft Delete.
+-   **Docentes**: Gestión de planta profesoral.
+-   **Materias/Grados/Secciones/Años**: Configuración flexible del entorno escolar.
 
-### 3. Gestión Académica
-- **Docentes**: Administración de la planta profesoral.
-- **Materias**: Asignación de materias a docentes, grados y secciones.
-- **Grados y Secciones**: Configuración flexible de la estructura escolar.
-- **Años Escolares**: Gestión de períodos académicos.
+### 3. Sistema de Calificaciones (Notas)
+-   **Carga de Notas**: Por lapsos (1°, 2°, 3°).
+-   **Bloqueo de Notas**: Funcionalidad para que 'Control de Estudios' bloquee la edición después de una fecha límite.
+-   **Validación**: Rango estricto de 0-20 puntos.
 
-### 4. Sistema de Calificaciones
-- Registro de notas por lapsos (Lapso 1, 2 y 3).
-- Vinculación de calificaciones con Estudiantes, Materias y Años Escolares.
-
-### 5. Auditoría
-- **Audit Logs**: Registro automático de acciones críticas (Creación, Edición, Eliminación) con detalles de quién y cuándo realizó la acción.
+### 4. Reportes Avanzados
+-   **Boletín Individual**: Generación de PDF optimizado para impresión (A4), con diseño oficial, firmas y formato de celdas adaptable.
+-   **Actas de Evaluación**: Reporte grupal por Sección/Materia exportable a **Excel (.xlsx)**.
 
 ## Estructura del Proyecto
 
-### `app/` & `components/` (Frontend)
-Contiene la lógica de la interfaz de usuario.
-- `(dashboard)/`: Rutas protegidas del panel principal.
-- `login/`: Página de inicio de sesión.
-- `components/`: Componentes reutilizables (Botones, Modales, Tablas).
+```
+Boletin360/
+├── app/                  # Frontend (Next.js App Router)
+│   ├── (dashboard)/      # Rutas autenticadas
+│   └── components/       # Componentes UI (Reports, Forms, UI)
+├── server/               # Backend (Express API)
+│   ├── prisma/           # Esquema de Prisma ORM
+│   ├── index.ts          # Entrypoint
+│   └── db.ts             # Conexión DB
+├── nginx/                # Configuración de Nginx
+├── docker-compose.yml    # Orquestación de contenedores
+└── start-app.ps1         # Script de inicio rápido (Windows)
+```
 
-### `server/` (Backend)
-Contiene la lógica del servidor API.
-- `index.ts`: Punto de entrada del servidor Express.
-- `db.ts`: Configuración de conexión a PostgreSQL e inicialización de tablas.
-- `middleware/`: Middlewares de autenticación (`auth.ts`).
-- `schemas.ts`: Definiciones de esquemas de validación Zod.
+## Tutorial de Instalación y Ejecución
 
-## Tutorial de Ejecución
+### Opción A: Ejecución Automática con Docker (Recomendado)
+*Requiere Docker Desktop instalado.*
 
-### Requisitos Previos
-- Node.js instalado (v18+ recomendado).
-- PostgreSQL instalado y ejecutándose.
-
-### 1. Configuración de la Base de Datos
-Cree una base de datos en PostgreSQL para el proyecto.
-Asegúrese de tener la cadena de conexión (Connection String), por ejemplo:
-`postgresql://usuario:password@localhost:5432/boletin360`
-
-### 2. Configuración del Backend
-1.  Navegue a la carpeta `server`:
-    ```bash
-    cd Boletin360-main/Boletin360-main/server
+1.  Ejecute el script de inicio en PowerShell:
+    ```powershell
+    ./start-app.ps1
     ```
-2.  Instale las dependencias:
+    O manualmente:
     ```bash
-    npm install
+    docker-compose up --build -d
     ```
-3.  Cree un archivo `.env` en la carpeta `server` con las siguientes variables:
+2.  Acceda a la aplicación en: `http://localhost`
+
+### Opción B: Ejecución Manual con Node.js
+
+**Requisitos**: Node.js v18+, PostgreSQL corriendo localmente.
+
+#### 1. Backend
+1.  Ir a `server/`.
+2.  `npm install`.
+3.  Crear `.env`:
     ```env
-    DATABASE_URL=postgresql://tu_usuario:tu_password@localhost:5432/nombre_tu_db
-    JWT_SECRET=tu_clave_secreta_super_segura
+    DATABASE_URL=postgresql://postgres:password@localhost:5432/boletin360
+    JWT_SECRET=secreto
     PORT=3001
     ```
-4.  Inicie el servidor de desarrollo:
-    ```bash
-    npm run dev
-    ```
-    *El servidor se iniciará en el puerto 3001 e intentará crear las tablas automáticamente si no existen.*
+4.  `npm run dev` (o use `pm2 start ecosystem.config.js`).
 
-### 3. Configuración del Frontend
-1.  Abra una nueva terminal y navegue a la raíz del proyecto (donde está el `package.json` principal):
-    ```bash
-    cd Boletin360-main/Boletin360-main
-    ```
-2.  Instale las dependencias:
-    ```bash
-    npm install
-    ```
-3.  Inicie el servidor de desarrollo de Next.js:
-    ```bash
-    npm run dev
-    ```
-4.  Abra su navegador en `http://localhost:3000`.
+#### 2. Frontend
+1.  Ir a la raíz.
+2.  `npm install`.
+3.  `npm run dev`.
+4.  Acceder a `http://localhost:3000`.
 
-## Usuario Administrador por Defecto
-Al iniciar el backend por primera vez, si no hay usuarios, se creará uno por defecto:
-- **Email**: `admin@boletin360.com`
-- **Contraseña**: `password`
-
-**¡Importante!**: Cambie esta contraseña inmediatamente después del primer inicio de sesión.
+## Usuario por Defecto
+-   **Email**: `admin@boletin360.com`
+-   **Contraseña**: `password`
