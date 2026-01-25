@@ -4,6 +4,7 @@ import React, { createContext, useReducer, useContext, Dispatch, useEffect, useS
 import { AppState, User, UserRole, Student, Teacher, Materia, AñoEscolar, Calificacion, Grado, Seccion, Evaluacion, ModalType } from '../types';
 import { Action, ActionType } from './actions';
 import { api } from '../lib/api';
+import { useAuth } from './AuthContext';
 
 // We exclude currentUser from DataState as it is in AuthContext
 type DataState = Omit<AppState, 'currentUser'>;
@@ -51,7 +52,6 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                     };
                 }
             }
-            // If Admin or other, return state as is (or reset if needed, but assuming full data is loaded)
             return state;
         }
 
@@ -302,7 +302,6 @@ const dataReducer = (state: DataState, action: Action): DataState => {
         // Initial Data
         case ActionType.SET_INITIAL_DATA: {
             const data: AppState = action.payload;
-            // Filter out currentUser from payload if it exists (though it shouldn't be there usually)
             const { currentUser, ...rest } = data;
             return { ...state, ...rest };
         }
@@ -318,9 +317,16 @@ const DataDispatchContext = createContext<Dispatch<Action>>(() => null);
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(dataReducer, initialDataState);
     const [loading, setLoading] = useState(true);
+    const { currentUser } = useAuth(); // Fix for 401 error: Use auth context
 
     useEffect(() => {
         const fetchData = async () => {
+            // Block fetching if no user logged in
+            if (!currentUser) {
+                setLoading(false);
+                return;
+            }
+
             try {
                 const response = await api.getInitialData();
                 dispatch({ type: ActionType.SET_INITIAL_DATA, payload: response.data });
@@ -331,17 +337,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
         fetchData();
-    }, []);
+    }, [currentUser]); // Retry fetching if user logs in
 
     if (loading) {
-        // This loading state now only blocks the Data part, or we can move the Loading UI upper in the tree
-        // For now, keeping it here blocks rendering of children until data is ready.
-        return <div className="flex h-screen items-center justify-center bg-moon-dark text-white">
-            <div className="animate-pulse flex flex-col items-center">
-                <div className="h-12 w-12 bg-moon-purple rounded-full mb-4"></div>
-                <div className="h-4 w-32 bg-moon-nav rounded"></div>
+        return (
+            <div className="flex h-screen items-center justify-center bg-moon-dark text-white">
+                <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-12 w-12 bg-moon-purple rounded-full mb-4"></div>
+                    <div className="h-4 w-32 bg-moon-nav rounded"></div>
+                </div>
             </div>
-        </div>;
+        );
     }
 
     return (

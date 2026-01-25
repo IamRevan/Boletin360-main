@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { type Student, StudentStatus, Grado, Seccion } from '../types';
 import { MoreVerticalIcon, EditIcon, Trash2Icon, UsersIcon } from './Icons';
 import { TableSkeleton } from './ui/TableSkeleton';
+import { Avatar } from './ui/Avatar';
 
 // Componente para mostrar el badge de estado del estudiante
 const StatusBadge: React.FC<{ status: StudentStatus }> = ({ status }) => {
@@ -110,9 +111,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, grados, se
                 <tr key={student.id} className="bg-moon-component border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-9 h-9 rounded-full bg-moon-purple flex items-center justify-center mr-3 text-white">
-                        <UsersIcon />
-                      </div>
+                      <Avatar name={`${student.nombres} ${student.apellidos}`} className="w-9 h-9 mr-3 text-xs" />
                       <div>
                         <div>{student.nombres} {student.apellidos}</div>
                         <div className="text-xs text-moon-text-secondary">{student.email}</div>

@@ -2,14 +2,15 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { type User, UserRole } from '../types';
 import { MoreVerticalIcon, EditIcon, Trash2Icon } from './Icons';
+import { Avatar } from './ui/Avatar';
 
 const RoleBadge: React.FC<{ role: UserRole }> = ({ role }) => {
   const baseClasses = 'px-3 py-1 text-xs font-semibold rounded-full inline-block';
   const roleClasses = {
     [UserRole.Admin]: 'bg-moon-purple/20 text-moon-purple-light',
+    [UserRole.ControlEstudios]: 'bg-moon-green/20 text-moon-green',
     [UserRole.Teacher]: 'bg-moon-blue/20 text-moon-blue',
   };
   return <span className={`${baseClasses} ${roleClasses[role]}`}>{role}</span>;
@@ -99,7 +100,7 @@ export const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, o
                 <tr key={user.id} className="bg-moon-component border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
                     <div className="flex items-center">
-                      <Image className="rounded-full object-cover mr-3" src={`https://i.pravatar.cc/150?u=${user.email}`} alt={user.email} width={36} height={36} />
+                      <Avatar name={`${user.nombres} ${user.apellidos}`} className="w-9 h-9 mr-3 text-xs" />
                       <div>
                         <div>{user.nombres} {user.apellidos}</div>
                         <div className="text-xs text-moon-text-secondary">{user.email}</div>

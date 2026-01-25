@@ -3,8 +3,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { SearchIcon, BellIcon, UserIcon, CogIcon, LogOutIcon, ChevronDownIcon } from './Icons';
+import { SearchIcon, UserIcon, CogIcon, LogOutIcon, ChevronDownIcon } from './Icons';
 import { type User, UserRole } from '../types';
+import { NotificationPopover } from './NotificationPopover';
 
 interface HeaderProps {
   onLogout: () => void;
@@ -39,16 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ onLogout, currentUser, onNavigat
         />
       </div>
       <div className="flex items-center space-x-5">
-        <button 
-          onClick={() => alert(`Notificaciones:\n- Sistema actualizado correctamente.\n- Bienvenido al nuevo panel.`)}
-          className="relative text-moon-text-secondary hover:text-moon-text focus:outline-none transition-colors"
-        >
-          <BellIcon />
-          <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-moon-purple opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-moon-purple"></span>
-          </span>
-        </button>
+        <NotificationPopover />
         <div className="relative" ref={dropdownRef}>
           <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center space-x-2 p-1 rounded-lg hover:bg-moon-component transition-colors">
             <div className="w-9 h-9 rounded-full bg-moon-purple flex items-center justify-center text-white font-bold text-sm">

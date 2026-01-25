@@ -1,12 +1,12 @@
 
 import React from 'react';
 
-interface ActaReportProps {
+interface ResumenReportProps {
     data: any; // { grado, seccion, anoEscolar, acta: [] }
     logoUrl?: string; // Optional custom logo
 }
 
-export const ActaReport: React.FC<ActaReportProps> = ({ data }) => {
+export const ResumenReport: React.FC<ResumenReportProps> = ({ data }) => {
     const { grado, seccion, anoEscolar, acta } = data;
 
     // Obtener lista única de materias para las columnas
@@ -39,7 +39,7 @@ export const ActaReport: React.FC<ActaReportProps> = ({ data }) => {
                     <h2 className="font-bold text-sm tracking-wide">REPUBLICA BOLIVARIANA DE VENEZUELA</h2>
                     <h2 className="font-bold text-sm tracking-wide">MINISTERIO DEL PODER POPULAR PARA LA EDUCACION</h2>
                     <h1 className="font-extrabold text-base mt-1">U.E.N "PEDRO EMILIO COLL"</h1>
-                    <h3 className="font-bold text-sm mt-1">ACTA DE EVALUACION</h3>
+                    <h3 className="font-bold text-sm mt-1">RESUMEN DE EVALUACION</h3>
                 </div>
                 <div className="w-24 h-24 flex items-center justify-center">
                     <img src="/images/logo_school.png" alt="Logo Escuela" className="w-full h-full object-contain" />

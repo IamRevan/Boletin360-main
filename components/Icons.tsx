@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-const Icon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const Icon: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="20"
@@ -12,6 +12,7 @@ const Icon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    className={className}
   >
     {children}
   </svg>
@@ -23,8 +24,8 @@ export const HomeIcon: React.FC = () => (
 export const UsersIcon: React.FC = () => (
   <Icon><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></Icon>
 );
-export const BookOpenIcon: React.FC = () => (
-  <Icon><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></Icon>
+export const BookOpenIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <Icon className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></Icon>
 );
 export const ChartBarIcon: React.FC = () => (
   <Icon><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></Icon>
@@ -104,6 +105,6 @@ export const PrinterIcon: React.FC = () => (
 export const LayersIcon: React.FC = () => (
   <Icon><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></Icon>
 );
-export const ArrowRightIcon: React.FC = () => (
-  <Icon><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></Icon>
+export const ArrowRightIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <Icon className={className}><g><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></g></Icon>
 );

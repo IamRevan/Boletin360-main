@@ -2,8 +2,8 @@
 
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { type Student, type User, UserRole, type Grado, type Seccion, ModalType } from '../types';
+import { Avatar } from './ui/Avatar';
 import { api } from '../lib/api';
 import { StatCard } from './StatCard';
 import { UsersIcon, CheckCircleIcon, PlusIcon, BookOpenIcon, UserCheckIcon, MoreVerticalIcon, EditIcon, Trash2Icon } from './Icons';
@@ -108,7 +108,7 @@ const RecentStudentsList: React.FC<{
                 <tr key={student.id} className="bg-moon-component border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
                     <div className="flex items-center">
-                      <Image className="rounded-full object-cover mr-3" src={`https://i.pravatar.cc/150?u=${student.email}`} alt={student.apellidos} width={36} height={36} />
+                      <Avatar name={`${student.nombres} ${student.apellidos}`} className="w-9 h-9 mr-3 text-xs" />
                       <div>
                         <div>{student.nombres} {student.apellidos}</div>
                         <div className="text-xs text-moon-text-secondary">{student.email}</div>

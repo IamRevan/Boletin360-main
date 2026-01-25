@@ -28,10 +28,18 @@ export const StudentSchema = z.object({
     apellidos: z.string().min(1),
     email: z.string().email(),
     genero: z.enum(['M', 'F']),
-    fecha_nacimiento: z.string().or(z.date()), // Acepta fecha string (ISO) o objeto Date
-    id_grado: z.number(),
-    id_seccion: z.number(),
-    status: z.string(), // e.g., 'Activo', 'Retirado'
+    fecha_nacimiento: z.string().or(z.date()).optional().nullable(),
+    lugar_nacimiento: z.string().optional(),
+    direccion: z.string().optional(),
+    telefono: z.string().optional(),
+    nombre_representante: z.string().optional(),
+    cedula_representante: z.string().optional(),
+    telefono_representante: z.string().optional(),
+    email_representante: z.string().email().optional().or(z.literal('')),
+    observaciones: z.string().optional(),
+    id_grado: z.number().nullable().optional(),
+    id_seccion: z.number().nullable().optional(),
+    status: z.string().optional(), // e.g., 'Activo', 'Retirado'
 });
 
 // Esquema para datos de Docentes

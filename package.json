@@ -12,10 +12,13 @@
   "dependencies": {
     "@types/recharts": "^1.8.29",
     "axios": "^1.13.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.0.0",
     "next": "16.0.7",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "recharts": "^3.6.0"
+    "recharts": "^3.6.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

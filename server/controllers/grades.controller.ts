@@ -78,7 +78,7 @@ export const getBoletin = async (req: Request, res: Response) => {
     try {
         const student = await prisma.student.findUnique({ where: { id: Number(studentId) } });
         const anoEscolar = await prisma.anosEscolares.findUnique({ where: { id: Number(anoEscolarId) } });
-        
+
         if (!student) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
         const boletin = await prisma.$queryRaw`
@@ -112,21 +112,73 @@ export const getBoletin = async (req: Request, res: Response) => {
 };
 
 export const getActa = async (req: Request, res: Response) => {
-    const { anoEscolarId, gradoId, seccionId } = req.query;
-    if (!anoEscolarId || !gradoId || !seccionId) return res.status(400).json({ error: 'Faltan parámetros' });
+    const { anoEscolarId, gradoId, seccionId, studentId } = req.query;
+
+    // Support either Batch (Grado/Seccion) or Individual (StudentId)
+    // But since UI is now Individual, we prioritize studentId logic.
+    if (!anoEscolarId) return res.status(400).json({ error: 'Faltan parámetros' });
 
     try {
-        const result: any[] = await prisma.$queryRaw`
-            SELECT 
-                st.id as student_id, st.nombres, st.apellidos, st.cedula,
-                m.id as materia_id, m.nombre_materia,
-                c.lapso1, c.lapso2, c.lapso3, c.is_locked
-            FROM students st
-            JOIN calificaciones c ON st.id = c.student_id
-            JOIN materias m ON c.materia_id = m.id
-            WHERE c.ano_escolar_id = ${Number(anoEscolarId)} AND st.id_grado = ${Number(gradoId)} AND st.id_seccion = ${Number(seccionId)}
-            ORDER BY st.apellidos, st.nombres, m.nombre_materia
-        `;
+        let result: any[] = [];
+        let fetchedGradoId = gradoId;
+        let fetchedSeccionId = seccionId;
+
+        if (studentId) {
+            // Individual Mode: Fetch student data first to get their Grade/Seccion
+            const studentData = await prisma.student.findUnique({
+                where: { id: Number(studentId) },
+                include: {
+                    grado: true,
+                    seccion: true
+                }
+            });
+
+            if (!studentData) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
+            // Asignar IDs de grado/seccion del estudiante si no se enviaron
+            fetchedGradoId = studentData.idGrado as any;
+            fetchedSeccionId = studentData.idSeccion as any;
+
+            // Mock result structure using student data directly needed for Constancia
+            // Since Constancia logic doesn't strictly need queryRaw of grades unless we want to, 
+            // but the ActaReport generic structure expects "acta" array with student details.
+            // We'll construct a single student object.
+
+            // Note: Original query calculates averages using 'calificaciones'. 
+            // If we want to fully support "Grade Sheet" legacy data, we query grades. 
+            // But Constancia usually just needs name/Enrollment. 
+            // However, keeping the "acta" structure populated allows ActaReport to work without changes.
+            // Let's reuse the query but filter by studentId.
+
+            result = await prisma.$queryRaw`
+                SELECT 
+                    st.id as student_id, st.nombres, st.apellidos, st.cedula,
+                    m.id as materia_id, m.nombre_materia,
+                    c.lapso1, c.lapso2, c.lapso3, c.is_locked
+                FROM students st
+                LEFT JOIN calificaciones c ON st.id = c.student_id AND c.ano_escolar_id = ${Number(anoEscolarId)}
+                LEFT JOIN materias m ON c.materia_id = m.id
+                WHERE st.id = ${Number(studentId)}
+            `;
+            // Note: Changed to LEFT JOIN to ensure student appears even if no grades exist yes (just enrolled).
+            // But if no grades, `result` might have null materia fields. 
+            // The ActaReport iteration relies on `materias`. If empty, it's fine.
+
+        } else {
+            // Batch Mode (Legacy or if accessed directly API)
+            if (!gradoId || !seccionId) return res.status(400).json({ error: 'Falta Grado/Seccion o StudentId' });
+            result = await prisma.$queryRaw`
+                SELECT 
+                    st.id as student_id, st.nombres, st.apellidos, st.cedula,
+                    m.id as materia_id, m.nombre_materia,
+                    c.lapso1, c.lapso2, c.lapso3, c.is_locked
+                FROM students st
+                JOIN calificaciones c ON st.id = c.student_id
+                JOIN materias m ON c.materia_id = m.id
+                WHERE c.ano_escolar_id = ${Number(anoEscolarId)} AND st.id_grado = ${Number(gradoId)} AND st.id_seccion = ${Number(seccionId)}
+                ORDER BY st.apellidos, st.nombres, m.nombre_materia
+            `;
+        }
 
         const studentsMap = new Map();
         result.forEach(row => {
@@ -139,18 +191,20 @@ export const getActa = async (req: Request, res: Response) => {
                     materias: []
                 });
             }
-            studentsMap.get(row.student_id).materias.push({
-                materia_id: row.materia_id,
-                nombre_materia: row.nombre_materia,
-                lapso1: row.lapso1,
-                lapso2: row.lapso2,
-                lapso3: row.lapso3,
-                is_locked: row.is_locked
-            });
+            if (row.materia_id) { // Check if materia exists (due to Left Join)
+                studentsMap.get(row.student_id).materias.push({
+                    materia_id: row.materia_id,
+                    nombre_materia: row.nombre_materia,
+                    lapso1: row.lapso1,
+                    lapso2: row.lapso2,
+                    lapso3: row.lapso3,
+                    is_locked: row.is_locked
+                });
+            }
         });
 
-        const grado = await prisma.grado.findUnique({ where: { id: Number(gradoId) } });
-        const seccion = await prisma.seccion.findUnique({ where: { id: Number(seccionId) } });
+        const grado = await prisma.grado.findUnique({ where: { id: Number(fetchedGradoId) } });
+        const seccion = await prisma.seccion.findUnique({ where: { id: Number(fetchedSeccionId) } });
         const ano = await prisma.anosEscolares.findUnique({ where: { id: Number(anoEscolarId) } });
 
         res.json({
@@ -161,7 +215,7 @@ export const getActa = async (req: Request, res: Response) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Error al generar acta' });
+        res.status(500).json({ error: 'Error al generar acta/constancia' });
     }
 };
 
@@ -186,7 +240,7 @@ export const exportXlsx = async (req: Request, res: Response) => {
         const seccion = await prisma.seccion.findUnique({ where: { id: Number(seccionId) } });
         const ano = await prisma.anosEscolares.findUnique({ where: { id: Number(anoEscolarId) } });
 
-        if (!grado || !seccion || !ano) return res.status(404).json({error: 'Datos no encontrados'});
+        if (!grado || !seccion || !ano) return res.status(404).json({ error: 'Datos no encontrados' });
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Acta de Evaluación');
@@ -210,29 +264,29 @@ export const exportXlsx = async (req: Request, res: Response) => {
 
         const studentsLink = new Map();
         result.forEach(r => {
-             if (!studentsLink.has(r.student_id)) {
-                 studentsLink.set(r.student_id, {
-                     cedula: r.cedula,
-                     nombre: `${r.apellidos}, ${r.nombres}`,
-                     materias: {}
-                 });
-             }
-             // Calculate Definitiva logic (simplified for export)
-             // ... logic from original file
-             // For now just dumping "OK" or similar if full logic is too big to copy-paste blindly without logic check.
-             // But let's try to do a basic average.
-             
-             const getN = (arr: any[]) => {
-                 if(!arr || arr.length === 0) return 0;
-                 return arr.reduce((acc, curr) => acc + (curr.nota * (curr.ponderacion/100)), 0);
-             };
-             
-             const def1 = getN(r.lapso1 as any[]);
-             const def2 = getN(r.lapso2 as any[]);
-             const def3 = getN(r.lapso3 as any[]);
-             const final = (def1+def2+def3)/3; // Rough approx
-             
-             studentsLink.get(r.student_id).materias[r.materia_id] = final.toFixed(1);
+            if (!studentsLink.has(r.student_id)) {
+                studentsLink.set(r.student_id, {
+                    cedula: r.cedula,
+                    nombre: `${r.apellidos}, ${r.nombres}`,
+                    materias: {}
+                });
+            }
+            // Calculate Definitiva logic (simplified for export)
+            // ... logic from original file
+            // For now just dumping "OK" or similar if full logic is too big to copy-paste blindly without logic check.
+            // But let's try to do a basic average.
+
+            const getN = (arr: any[]) => {
+                if (!arr || arr.length === 0) return 0;
+                return arr.reduce((acc, curr) => acc + (curr.nota * (curr.ponderacion / 100)), 0);
+            };
+
+            const def1 = getN(r.lapso1 as any[]);
+            const def2 = getN(r.lapso2 as any[]);
+            const def3 = getN(r.lapso3 as any[]);
+            const final = (def1 + def2 + def3) / 3; // Rough approx
+
+            studentsLink.get(r.student_id).materias[r.materia_id] = final.toFixed(1);
         });
 
         studentsLink.forEach((st) => {
@@ -245,7 +299,7 @@ export const exportXlsx = async (req: Request, res: Response) => {
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', 'attachment; filename=acta.xlsx');
-        
+
         await workbook.xlsx.write(res);
         res.end();
 

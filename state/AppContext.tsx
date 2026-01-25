@@ -3,16 +3,19 @@
 import React from 'react';
 import { AuthProvider, useAuth, useAuthDispatch } from './AuthContext';
 import { DataProvider, useData, useDataDispatch } from './DataContext';
+import { ToastProvider } from './ToastContext';
 import { AppState } from '../types';
 
-// AppProvider combines both Auth and Data providers
+// AppProvider combines Auth, Data, and Toast providers
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
-        <AuthProvider>
-            <DataProvider>
-                {children}
-            </DataProvider>
-        </AuthProvider>
+        <ToastProvider>
+            <AuthProvider>
+                <DataProvider>
+                    {children}
+                </DataProvider>
+            </AuthProvider>
+        </ToastProvider>
     );
 };
 

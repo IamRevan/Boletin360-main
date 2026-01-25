@@ -17,7 +17,14 @@ const NavItem: React.FC<{ icon: React.ReactNode; label: string; active?: boolean
 
 export const Sidebar: React.FC<{ setCurrentPage: (page: string) => void, currentPage: string, userRole: UserRole }> = ({ setCurrentPage, currentPage, userRole }) => {
   const isAdmin = userRole === UserRole.Admin;
+  const isControlEstudios = userRole === UserRole.ControlEstudios;
   const isTeacher = userRole === UserRole.Teacher;
+
+  // Permisos combinados
+  const canManageStudents = isAdmin || isControlEstudios; // Admin y Control de Estudios pueden gestionar estudiantes
+  const canManageGrades = isAdmin || isControlEstudios; // Admin y Control pueden validar calificaciones
+  const canViewReports = isAdmin || isControlEstudios; // Admin y Control pueden ver reportes
+  const canManageAcademic = isAdmin || isControlEstudios; // Admin y Control pueden ver estructura académica
 
   return (
     <aside className="w-64 flex-shrink-0 bg-moon-nav p-6 hidden lg:flex flex-col">
@@ -28,14 +35,34 @@ export const Sidebar: React.FC<{ setCurrentPage: (page: string) => void, current
         <h1 className="text-xl font-bold text-white ml-3">Boletín360</h1>
       </div>
       <nav className="flex-1 space-y-2">
+        {/* Dashboard - Todos */}
         <NavItem icon={<HomeIcon />} label="Dashboard" active={currentPage === 'dashboard'} onClick={() => setCurrentPage('dashboard')} />
+
+        {/* Estudiantes - Admin, Control de Estudios (gestión), Profesor (solo ver) */}
         <NavItem icon={<UsersIcon />} label="Estudiantes" active={currentPage === 'students'} onClick={() => setCurrentPage('students')} />
+
+        {/* Docentes - Solo Admin */}
         {isAdmin && <NavItem icon={<UserCheckIcon />} label="Docentes" active={currentPage === 'teachers'} onClick={() => setCurrentPage('teachers')} />}
+
+        {/* Calificaciones - Todos (Profesor edita, Admin/Control validan) */}
         <NavItem icon={<ClipboardListIcon />} label="Calificaciones" active={currentPage === 'grades'} onClick={() => setCurrentPage('grades')} />
+
+        {/* Materias - Admin, Control de Estudios (gestión), Profesor (solo ver) */}
         <NavItem icon={<BookOpenIcon />} label="Materias" active={currentPage === 'courses'} onClick={() => setCurrentPage('courses')} />
-        {isAdmin && <NavItem icon={<CalendarIcon />} label="Estructura Académica" active={currentPage === 'schoolyears'} onClick={() => setCurrentPage('schoolyears')} />}
-        {isAdmin && <NavItem icon={<LayersIcon />} label="Promoción de Año" active={currentPage === 'promotion'} onClick={() => setCurrentPage('promotion')} />}
-        {isAdmin && <NavItem icon={<ChartBarIcon />} label="Reportes" active={currentPage === 'reports'} onClick={() => setCurrentPage('reports')} />}
+
+        {/* Estructura Académica - Admin y Control de Estudios */}
+        {canManageAcademic && <NavItem icon={<CalendarIcon />} label="Estructura Académica" active={currentPage === 'schoolyears'} onClick={() => setCurrentPage('schoolyears')} />}
+
+        {/* Promoción de Año - Admin y Control de Estudios */}
+        {canManageAcademic && <NavItem icon={<LayersIcon />} label="Promoción de Año" active={currentPage === 'promotion'} onClick={() => setCurrentPage('promotion')} />}
+
+        {/* Reportes - Admin y Control de Estudios */}
+        {canViewReports && <NavItem icon={<ChartBarIcon />} label="Reportes" active={currentPage === 'reports'} onClick={() => setCurrentPage('reports')} />}
+
+        {/* Auditoría - Solo Admin */}
+        {isAdmin && <NavItem icon={<ClipboardListIcon />} label="Auditoría" active={currentPage === 'audit'} onClick={() => setCurrentPage('audit')} />}
+
+        {/* Configuración - Solo Admin */}
         {isAdmin && <NavItem icon={<CogIcon />} label="Configuración" active={currentPage === 'settings'} onClick={() => setCurrentPage('settings')} />}
       </nav>
     </aside>

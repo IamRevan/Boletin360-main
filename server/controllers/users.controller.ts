@@ -27,7 +27,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
         });
 
         await logAction(userId, 'CREATE_USER', `Created user ${user.email} with role ${user.role}`);
-        
+
         const { password: _, ...userWithoutPassword } = user;
         res.json({ ...userWithoutPassword, teacherId: user.teacherId });
     } catch (err) {
@@ -78,11 +78,13 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.id;
 
     try {
-        await prisma.user.delete({
-            where: { id: Number(id) }
+        // Soft delete - set deletedAt instead of deleting
+        await prisma.user.update({
+            where: { id: Number(id) },
+            data: { deletedAt: new Date() }
         });
-        
-        await logAction(userId, 'DELETE_USER', `Deleted user ID ${id}`);
+
+        await logAction(userId, 'DELETE_USER', `Soft deleted user ID ${id}`);
         res.json({ success: true });
     } catch (err) {
         console.error(err);

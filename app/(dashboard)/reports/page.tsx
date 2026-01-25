@@ -5,9 +5,10 @@ import { useAppState } from '@/state/AppContext';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { PrinterIcon, SearchIcon, FileTextIcon, DownloadIcon } from '@/components/Icons';
-import { ActaReport } from '@/components/reports/ActaReport';
+import { ConstanciaReport } from '@/components/reports/ConstanciaReport';
+import { ResumenReport } from '@/components/reports/ResumenReport';
 
-type ReportType = 'boletin' | 'acta';
+type ReportType = 'boletin' | 'acta' | 'resumen';
 
 export default function ReportsPage() {
     const { students, añosEscolares, grados, secciones, isLoading: isAppLoading } = useAppState();
@@ -38,20 +39,27 @@ export default function ReportsPage() {
     }, [students, searchTerm]);
 
     const handleGenerateReport = async () => {
-        if (reportType === 'boletin') {
-            if (!selectedStudentId || !selectedAnoId) return;
-        } else {
+        // Validacion
+        if (reportType === 'resumen') {
             if (!selectedAnoId || !selectedGradoId || !selectedSeccionId) return;
+        } else {
+            if (!selectedStudentId || !selectedAnoId) return;
         }
 
         setIsLoadingReport(true);
         setReportData(null);
 
         try {
+            // Reusamos /reports/acta para constancia y resumen, el backend maneja la logica según params
             const endpoint = reportType === 'boletin' ? '/reports/boletin' : '/reports/acta';
-            const params = reportType === 'boletin'
-                ? { studentId: selectedStudentId, anoEscolarId: selectedAnoId }
-                : { anoEscolarId: selectedAnoId, gradoId: selectedGradoId, seccionId: selectedSeccionId };
+
+            const params: any = { anoEscolarId: selectedAnoId };
+            if (reportType === 'resumen') {
+                params.gradoId = selectedGradoId;
+                params.seccionId = selectedSeccionId;
+            } else {
+                params.studentId = selectedStudentId;
+            }
 
             const response = await api.get(endpoint, { params });
             setReportData(response.data);
@@ -68,10 +76,30 @@ export default function ReportsPage() {
         window.print();
     };
 
-    const handleDownloadExcel = () => {
+    const handleDownloadExcel = async () => {
         if (!selectedAnoId || !selectedGradoId || !selectedSeccionId) return;
-        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/reports/export-xlsx?anoEscolarId=${selectedAnoId}&gradoId=${selectedGradoId}&seccionId=${selectedSeccionId}`;
-        window.open(url, '_blank');
+
+        try {
+            const response = await api.get('/reports/export-xlsx', {
+                params: {
+                    anoEscolarId: selectedAnoId,
+                    gradoId: selectedGradoId,
+                    seccionId: selectedSeccionId
+                },
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `constancia_estudios_${selectedGradoId}_${selectedSeccionId}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Error downloading excel", error);
+            alert("Error al descargar el archivo Excel.");
+        }
     };
 
     // Helper para nota de lapso (Boletín)
@@ -101,9 +129,8 @@ export default function ReportsPage() {
     const isGenerateDisabled = () => {
         if (isLoadingReport) return true;
         if (!selectedAnoId) return true;
-        if (reportType === 'boletin') return !selectedStudentId;
-        if (reportType === 'acta') return !selectedGradoId || !selectedSeccionId;
-        return false;
+        if (reportType === 'resumen') return !selectedGradoId || !selectedSeccionId;
+        return !selectedStudentId;
     };
 
     return (
@@ -127,15 +154,21 @@ export default function ReportsPage() {
                             onClick={() => { setReportType('acta'); setReportData(null); }}
                             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${reportType === 'acta' ? 'bg-blue-600 text-white shadow-lg' : 'text-moon-text hover:text-white'}`}
                         >
-                            Acta de Evaluación
+                            Constancia de Estudio
+                        </button>
+                        <button
+                            onClick={() => { setReportType('resumen'); setReportData(null); }}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${reportType === 'resumen' ? 'bg-blue-600 text-white shadow-lg' : 'text-moon-text hover:text-white'}`}
+                        >
+                            Resumen de Notas
                         </button>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     {/* Campos según tipo */}
-                    {reportType === 'boletin' ? (
-                        // Buscador de Estudiante
+                    {reportType !== 'resumen' ? (
+                        // Buscador de Estudiante (Boletín y Constancia)
                         <div className="relative md:col-span-2">
                             <label className="block text-sm font-medium text-moon-text-secondary mb-2">Estudiante</label>
                             <div className="flex items-center bg-moon-bg rounded-lg border border-moon-border px-3 py-2">
@@ -172,7 +205,7 @@ export default function ReportsPage() {
                             )}
                         </div>
                     ) : (
-                        // Selectores de Grado y Sección
+                        // Selectores de Grado y Sección (Solo para Resumen)
                         <>
                             <div>
                                 <label className="block text-sm font-medium text-moon-text-secondary mb-2">Grado</label>
@@ -225,7 +258,10 @@ export default function ReportsPage() {
                             disabled={isGenerateDisabled()}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isLoadingReport ? 'Generando...' : (reportType === 'boletin' ? 'Ver Boletín' : 'Ver Acta')}
+                            {isLoadingReport ? 'Generando...' : (
+                                reportType === 'boletin' ? 'Ver Boletín' :
+                                    reportType === 'acta' ? 'Ver Constancia' : 'Ver Resumen'
+                            )}
                         </button>
                     </div>
                 </div>
@@ -236,7 +272,7 @@ export default function ReportsPage() {
                 <div className="animate-fade-in pb-10">
                     {/* Botonera Flotante */}
                     <div className="flex justify-end mb-4 print:hidden gap-2">
-                        {reportType === 'acta' && (
+                        {reportType === 'resumen' && (
                             <button
                                 onClick={handleDownloadExcel}
                                 className="flex items-center bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
@@ -256,7 +292,9 @@ export default function ReportsPage() {
 
                     {/* Renderizado Condicional */}
                     {reportType === 'acta' ? (
-                        <ActaReport data={reportData} />
+                        <ConstanciaReport data={reportData} />
+                    ) : reportType === 'resumen' ? (
+                        <ResumenReport data={reportData} />
                     ) : (
                         // Diseño Boletín - Ajustado para parecerse a la imagen de referencia #2
                         <div className="bg-white text-black mx-auto print:mx-0 w-[21.59cm] min-h-[27.94cm] p-8 shadow-2xl print:shadow-none font-sans text-xs flex flex-col justify-between">

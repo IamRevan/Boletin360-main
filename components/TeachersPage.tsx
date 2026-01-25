@@ -7,34 +7,50 @@ import { TeacherTable } from './TeacherTable';
 import { PlusIcon, UploadIcon, DownloadIcon, SearchIcon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { useToast } from '../state/ToastContext';
 
 // Página de Gestión de Docentes
 export const TeachersPage: React.FC = () => {
   const { teachers } = useAppState();
   const dispatch = useAppDispatch();
+  const { addToast } = useToast();
 
   // Estados para búsqueda y paginación
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const teachersPerPage = 8;
 
+  // Estado para diálogo de confirmación
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    teacherId: number | null;
+    teacherName: string;
+  }>({ isOpen: false, teacherId: null, teacherName: '' });
+
   // Handlers
   const onAdd = () => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddTeacher } });
   const onEdit = (teacher: Teacher) => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.EditTeacher, data: teacher } });
 
-  // Eliminar docente con confirmación
-  const onDelete = async (teacherId: number) => {
+  // Mostrar diálogo de confirmación para eliminar
+  const onDelete = (teacherId: number) => {
     const teacher = teachers.find(t => t.id === teacherId);
     const teacherName = teacher ? `${teacher.nombres} ${teacher.apellidos}` : 'este docente';
-    if (window.confirm(`¿Está seguro que desea eliminar a '${teacherName}'? Esta acción no se puede deshacer.`)) {
-      try {
-        await api.deleteTeacher(teacherId);
-        dispatch({ type: ActionType.DELETE_TEACHER, payload: teacherId });
-      } catch (error) {
-        console.error("Failed to delete teacher", error);
-        alert("Error al eliminar docente");
-      }
+    setConfirmDialog({ isOpen: true, teacherId, teacherName });
+  };
+
+  // Confirmar eliminación
+  const handleConfirmDelete = async () => {
+    if (confirmDialog.teacherId === null) return;
+    try {
+      await api.deleteTeacher(confirmDialog.teacherId);
+      dispatch({ type: ActionType.DELETE_TEACHER, payload: confirmDialog.teacherId });
+      addToast('Docente eliminado correctamente', 'success');
+    } catch (error) {
+      console.error("Failed to delete teacher", error);
+      addToast('Error al eliminar docente', 'error');
     }
+    setConfirmDialog({ isOpen: false, teacherId: null, teacherName: '' });
   };
 
   // Filtro de docentes por nombre, apellido o cédula
@@ -59,6 +75,18 @@ export const TeachersPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Diálogo de Confirmación para Eliminar */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="Eliminar Docente"
+        message={`¿Está seguro que desea eliminar a "${confirmDialog.teacherName}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDialog({ isOpen: false, teacherId: null, teacherName: '' })}
+      />
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

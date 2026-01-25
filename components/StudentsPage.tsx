@@ -7,13 +7,19 @@ import { StudentTable } from './StudentTable';
 import { PlusIcon, UploadIcon, DownloadIcon, SearchIcon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
+import { ExcelImportModal } from './ExcelImportModal';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import * as XLSX from 'xlsx';
+import { useToast } from '../state/ToastContext';
 
 // Página de Gestión de Estudiantes
 export const StudentsPage: React.FC = () => {
   const { students, grados, secciones, currentUser, isLoading } = useAppState();
   const dispatch = useAppDispatch();
+  const { addToast } = useToast();
 
-  // Estados locales para filtros y paginación
+  // Estado para modal de importación
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [filters, setFilters] = useState({ search: '', grade: '', section: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 8;
@@ -21,27 +27,43 @@ export const StudentsPage: React.FC = () => {
   // Estado para el input de paginación manual
   const [pageInput, setPageInput] = useState(currentPage.toString());
 
+  // Estado para diálogo de confirmación
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    studentId: number | null;
+    studentName: string;
+  }>({ isOpen: false, studentId: null, studentName: '' });
+
   if (!currentUser) return null;
   const isTeacher = currentUser.role === UserRole.Teacher;
+  const isControlEstudios = currentUser.role === UserRole.ControlEstudios;
+  const canManageStudents = !isTeacher; // Admin y ControlEstudios pueden gestionar
 
   // Handlers para abrir modales
   const onAdd = () => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddStudent } });
   const onEdit = (student: Student) => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.EditStudent, data: student } });
 
-  // Handler para eliminar estudiante con confirmación
-  const onDelete = async (studentId: number) => {
+  // Handler para mostrar diálogo de confirmación antes de eliminar
+  const onDelete = (studentId: number) => {
     const student = students.find(s => s.id === studentId);
     const studentName = student ? `${student.nombres} ${student.apellidos}` : 'este estudiante';
-    if (window.confirm(`¿Está seguro que desea eliminar a '${studentName}'? Esta acción no se puede deshacer.`)) {
-      try {
-        await api.deleteStudent(studentId);
-        dispatch({ type: ActionType.DELETE_STUDENT, payload: studentId });
-      } catch (error) {
-        console.error("Failed to delete student", error);
-        alert("Error al eliminar estudiante");
-      }
-    }
+    setConfirmDialog({ isOpen: true, studentId, studentName });
   };
+
+  // Handler para confirmar eliminación
+  const handleConfirmDelete = async () => {
+    if (confirmDialog.studentId === null) return;
+    try {
+      await api.deleteStudent(confirmDialog.studentId);
+      dispatch({ type: ActionType.DELETE_STUDENT, payload: confirmDialog.studentId });
+      addToast('Estudiante eliminado correctamente', 'success');
+    } catch (error) {
+      console.error("Failed to delete student", error);
+      addToast('Error al eliminar estudiante', 'error');
+    }
+    setConfirmDialog({ isOpen: false, studentId: null, studentName: '' });
+  };
+
 
   // Filtrado de estudiantes en memoria
   const filteredStudents = useMemo(() => {
@@ -117,8 +139,49 @@ export const StudentsPage: React.FC = () => {
   };
   // --- Fin Lógica de Paginación ---
 
+  // Función de exportar a Excel
+  const handleExport = () => {
+    try {
+      // Preparar datos para Excel
+      const exportData = students.map(s => ({
+        Nacionalidad: s.nacionalidad,
+        Cedula: s.cedula,
+        Nombres: s.nombres,
+        Apellidos: s.apellidos,
+        Email: s.email || '',
+        Genero: s.genero || '',
+        Grado: grados.find(g => g.id_grado === s.id_grado)?.nombre_grado || '',
+        Seccion: secciones.find(sec => sec.id_seccion === s.id_seccion)?.nombre_seccion || '',
+        Estado: s.status
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Estudiantes');
+      XLSX.writeFile(workbook, `estudiantes_${new Date().toISOString().split('T')[0]}.xlsx`);
+      addToast('Estudiantes exportados correctamente', 'success');
+    } catch (error) {
+      console.error('Error exporting:', error);
+      addToast('Error al exportar estudiantes', 'error');
+    }
+  };
+
   return (
     <div className="space-y-8">
+      {/* Modal de Importación */}
+      <ExcelImportModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
+
+      {/* Diálogo de Confirmación para Eliminar */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="Eliminar Estudiante"
+        message={`¿Está seguro que desea eliminar a "${confirmDialog.studentName}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDialog({ isOpen: false, studentId: null, studentName: '' })}
+      />
       {/* Header de la página */}
       <div className="flex justify-between items-center">
         <div>
@@ -128,10 +191,10 @@ export const StudentsPage: React.FC = () => {
         {/* Acciones solo visibles para Admin (No Teachers) */}
         {!isTeacher && (
           <div className="flex space-x-3">
-            <button className="bg-moon-component hover:bg-moon-border text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+            <button onClick={() => setIsImportModalOpen(true)} className="bg-moon-component hover:bg-moon-border text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
               <UploadIcon /> <span className="ml-2 hidden sm:inline">Importar</span>
             </button>
-            <button className="bg-moon-component hover:bg-moon-border text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+            <button onClick={handleExport} className="bg-moon-component hover:bg-moon-border text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
               <DownloadIcon /> <span className="ml-2 hidden sm:inline">Exportar</span>
             </button>
             <button onClick={onAdd} className="bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">

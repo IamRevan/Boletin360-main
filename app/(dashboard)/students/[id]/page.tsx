@@ -83,19 +83,57 @@ export default function StudentProfilePage() {
                 <div className="space-y-6">
                     <div className="bg-moon-component p-6 rounded-xl border border-moon-border">
                         <h3 className="text-lg font-bold text-white mb-4">Datos Personales</h3>
-                        <div className="space-y-3 text-sm">
+                        <div className="space-y-4 text-sm">
                             <div>
-                                <span className="text-moon-text-secondary block">Email</span>
-                                <span className="text-moon-text">{profile.student.email}</span>
+                                <span className="text-moon-text-secondary block text-xs uppercase mb-1">Contacto</span>
+                                <div className="text-moon-text">{profile.student.email}</div>
+                                <div className="text-moon-text">{profile.student.telefono || 'Sin teléfono'}</div>
                             </div>
                             <div>
-                                <span className="text-moon-text-secondary block">Género</span>
+                                <span className="text-moon-text-secondary block text-xs uppercase mb-1">Nacimiento</span>
+                                <div className="text-moon-text">{profile.student.fecha_nacimiento || 'No registrada'}</div>
+                                <div className="text-moon-text text-moon-text-secondary">{profile.student.lugarNacimiento || 'Lugar no registrado'}</div>
+                            </div>
+                            <div>
+                                <span className="text-moon-text-secondary block text-xs uppercase mb-1">Dirección</span>
+                                <div className="text-moon-text">{profile.student.direccion || 'No registrada'}</div>
+                            </div>
+                            <div>
+                                <span className="text-moon-text-secondary block text-xs uppercase mb-1">Género</span>
                                 <span className="text-moon-text">{profile.student.genero === 'M' ? 'Masculino' : 'Femenino'}</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-moon-component p-6 rounded-xl border border-moon-border">
+                        <h3 className="text-lg font-bold text-white mb-4">Datos del Representante</h3>
+                        <div className="space-y-4 text-sm">
                             <div>
-                                <span className="text-moon-text-secondary block">Fecha de Nacimiento</span>
-                                <span className="text-moon-text">{profile.student.fecha_nacimiento || 'No registrada'}</span>
+                                <span className="text-moon-text-secondary block text-xs uppercase mb-1">Nombre</span>
+                                <div className="text-moon-text font-medium">{profile.student.representante || 'No registrado'}</div>
                             </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span className="text-moon-text-secondary block text-xs uppercase mb-1">Cédula</span>
+                                    <div className="text-moon-text">{profile.student.cedulaR || '-'}</div>
+                                </div>
+                                <div>
+                                    <span className="text-moon-text-secondary block text-xs uppercase mb-1">Teléfono</span>
+                                    <div className="text-moon-text">{profile.student.telefonoR || '-'}</div>
+                                </div>
+                            </div>
+                            <div>
+                                <span className="text-moon-text-secondary block text-xs uppercase mb-1">Email</span>
+                                <div className="text-moon-text">{profile.student.emailR || '-'}</div>
+                            </div>
+                            {profile.student.observaciones && (
+                                <div>
+                                    <span className="text-moon-text-secondary block text-xs uppercase mb-1">Observaciones</span>
+                                    <div className="text-moon-text italic bg-moon-nav p-2 rounded border border-moon-border/50 text-xs">
+                                        {profile.student.observaciones}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

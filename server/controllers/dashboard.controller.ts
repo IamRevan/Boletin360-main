@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 
 export const getInitialData = async (req: AuthRequest, res: Response) => {
     try {
-        const users = await prisma.user.findMany();
+        const users = await prisma.user.findMany({ where: { deletedAt: null } });
         const students = await prisma.student.findMany({ where: { deletedAt: null } });
         const teachers = await prisma.teacher.findMany();
         const materias = await prisma.materia.findMany();
@@ -58,7 +58,7 @@ export const getInitialData = async (req: AuthRequest, res: Response) => {
         }));
 
         const formatCalificaciones = calificaciones.map(c => ({
-            id: c.studentId, 
+            id: c.studentId,
             id_materia: c.materiaId,
             id_año_escolar: c.anoEscolarId,
             lapso1: c.lapso1,
@@ -70,10 +70,10 @@ export const getInitialData = async (req: AuthRequest, res: Response) => {
             ...u,
             teacherId: u.teacherId
         }));
-        
+
         // Safe current user
         let safeCurrentUser = null;
-        if(currentUser) {
+        if (currentUser) {
             const { password, ...rest } = currentUser;
             safeCurrentUser = { ...rest, teacherId: currentUser.teacherId };
         }

@@ -2,9 +2,9 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { type Teacher, TeacherStatus } from '../types';
 import { MoreVerticalIcon, EditIcon, Trash2Icon } from './Icons';
+import { Avatar } from './ui/Avatar';
 
 // Badge de estado para Docentes
 const StatusBadge: React.FC<{ status: TeacherStatus }> = ({ status }) => {
@@ -91,7 +91,7 @@ export const TeacherTable: React.FC<TeacherTableProps> = ({ teachers, onEdit, on
                 <tr key={teacher.id} className="bg-moon-component border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
                     <div className="flex items-center">
-                      <Image className="rounded-full object-cover mr-3" src={`https://i.pravatar.cc/150?u=${teacher.email}`} alt={teacher.apellidos} width={36} height={36} />
+                      <Avatar name={`${teacher.nombres} ${teacher.apellidos}`} className="w-9 h-9 mr-3 text-xs" />
                       <div>
                         <div>{teacher.nombres} {teacher.apellidos}</div>
                         <div className="text-xs text-moon-text-secondary">{teacher.email}</div>

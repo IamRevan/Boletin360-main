@@ -7,15 +7,25 @@ import { MateriaTable } from './MateriaTable';
 import { PlusIcon, UploadIcon, DownloadIcon, SearchIcon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { useToast } from '../state/ToastContext';
 
 // Página de Gestión de Materias
 export const MateriasPage: React.FC = () => {
   const { materias, teachers, grados, secciones, currentUser } = useAppState();
   const dispatch = useAppDispatch();
+  const { addToast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const materiasPerPage = 8;
+
+  // Estado para diálogo de confirmación
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    materiaId: number | null;
+    materiaName: string;
+  }>({ isOpen: false, materiaId: null, materiaName: '' });
 
   if (!currentUser) return null;
   const isTeacher = currentUser.role === UserRole.Teacher;
@@ -23,18 +33,26 @@ export const MateriasPage: React.FC = () => {
   // Handlers para acciones
   const onAdd = () => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddMateria } });
   const onEdit = (materia: Materia) => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.EditMateria, data: materia } });
-  const onDelete = async (materiaId: number) => {
+
+  // Mostrar diálogo de confirmación
+  const onDelete = (materiaId: number) => {
     const materia = materias.find(m => m.id === materiaId);
     const materiaName = materia ? materia.nombre_materia : 'esta materia';
-    if (window.confirm(`¿Está seguro que desea eliminar la materia '${materiaName}'? Esta acción no se puede deshacer.`)) {
-      try {
-        await api.deleteMateria(materiaId);
-        dispatch({ type: ActionType.DELETE_MATERIA, payload: materiaId });
-      } catch (error) {
-        console.error("Failed to delete materia", error);
-        alert("Error al eliminar materia");
-      }
+    setConfirmDialog({ isOpen: true, materiaId, materiaName });
+  };
+
+  // Confirmar eliminación
+  const handleConfirmDelete = async () => {
+    if (confirmDialog.materiaId === null) return;
+    try {
+      await api.deleteMateria(confirmDialog.materiaId);
+      dispatch({ type: ActionType.DELETE_MATERIA, payload: confirmDialog.materiaId });
+      addToast('Materia eliminada correctamente', 'success');
+    } catch (error) {
+      console.error("Failed to delete materia", error);
+      addToast('Error al eliminar materia', 'error');
     }
+    setConfirmDialog({ isOpen: false, materiaId: null, materiaName: '' });
   };
 
   // Filtrado de materias
@@ -58,6 +76,18 @@ export const MateriasPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Diálogo de Confirmación para Eliminar */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="Eliminar Materia"
+        message={`¿Está seguro que desea eliminar la materia "${confirmDialog.materiaName}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDialog({ isOpen: false, materiaId: null, materiaName: '' })}
+      />
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

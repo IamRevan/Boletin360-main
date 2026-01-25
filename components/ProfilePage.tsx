@@ -2,8 +2,8 @@
 
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useAppState, useAppDispatch } from '../state/AppContext';
+import { Avatar } from './ui/Avatar';
 import { ActionType } from '../state/actions';
 import { type User } from '../types';
 import { UserIcon, LockIcon, SaveIcon } from './Icons';
@@ -86,13 +86,9 @@ export const ProfilePage: React.FC = () => {
                 {/* Profile Card */}
                 <div className="lg:col-span-1">
                     <div className="bg-moon-component rounded-xl border border-moon-border p-8 text-center sticky top-10">
-                        <Image
-                            src={`https://i.pravatar.cc/150?u=${currentUser.email}`}
-                            alt="User Avatar"
-                            className="rounded-full object-cover mx-auto mb-4 border-4 border-moon-purple"
-                            width={112}
-                            height={112}
-                        />
+                        <div className="flex justify-center mb-4">
+                            <Avatar name={`${currentUser.nombres} ${currentUser.apellidos}`} className="w-28 h-28 text-3xl border-4 border-moon-purple" />
+                        </div>
                         <h3 className="text-2xl font-bold text-white">{currentUser.nombres} {currentUser.apellidos}</h3>
                         <p className="text-moon-text-secondary">{currentUser.email}</p>
                         <span className="mt-4 px-3 py-1 text-xs font-semibold rounded-full inline-block bg-moon-purple/20 text-moon-purple-light">

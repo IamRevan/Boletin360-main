@@ -31,6 +31,14 @@ export interface Student {
   id_grado: number | null; // Relación con Grado
   id_seccion: number | null; // Relación con Sección
   status: StudentStatus;
+  lugarNacimiento?: string;
+  direccion?: string;
+  telefono?: string;
+  representante?: string;
+  cedulaR?: string;
+  telefonoR?: string;
+  emailR?: string;
+  observaciones?: string;
 }
 
 // Enumeración para estatus del docente
@@ -88,7 +96,8 @@ export interface Calificacion {
 // Roles de Usuario
 export enum UserRole {
   Admin = 'Admin',
-  Teacher = 'Teacher', // Rol Docente (llamado 'Docente' en la DB pero mapeado aquí)
+  ControlEstudios = 'ControlEstudios', // Control de Estudios
+  Teacher = 'Teacher', // Rol Docente
 }
 
 // Interfaz de Usuario del Sistema
