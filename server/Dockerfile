@@ -1,9 +1,9 @@
 # Backend Dockerfile - Node.js API with Prisma
 FROM node:20-alpine AS base
+RUN apk add --no-cache libc6-compat openssl
 
 # Install dependencies
 FROM base AS deps
-RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -34,6 +34,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
+# Copy utility scripts for initialization
+COPY --from=builder /app/*.ts ./
 
 USER expressjs
 

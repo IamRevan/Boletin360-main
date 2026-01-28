@@ -13,6 +13,18 @@
         "./**/*.ts"
     ],
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "check_data.ts",
+        "seed_full_data.ts",
+        "seed_subjects.ts",
+        "test-security.ts",
+        "backfill-students.ts",
+        "backup.ts",
+        "debug-login.ts",
+        "test-api.ts",
+        "test-login.ts",
+        "test-server-http.ts",
+        "verify-history.ts",
+        "verify-students.ts"
     ]
 }

@@ -96,8 +96,9 @@ export interface Calificacion {
 // Roles de Usuario
 export enum UserRole {
   Admin = 'Admin',
-  ControlEstudios = 'ControlEstudios', // Control de Estudios
-  Teacher = 'Teacher', // Rol Docente
+  Director = 'Director',
+  ControlEstudios = 'Control de Estudios', // Control de Estudios
+  Teacher = 'Docente', // Rol Docente
 }
 
 // Interfaz de Usuario del Sistema

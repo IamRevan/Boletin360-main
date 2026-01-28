@@ -1,6 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
 }
+
+// Para ejecutar: npx prisma db seed
+// nota: esto requiere que el archivo este compilado o usar ts-node
 
 datasource db {
   provider = "postgresql"

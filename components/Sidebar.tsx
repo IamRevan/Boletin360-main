@@ -19,12 +19,13 @@ export const Sidebar: React.FC<{ setCurrentPage: (page: string) => void, current
   const isAdmin = userRole === UserRole.Admin;
   const isControlEstudios = userRole === UserRole.ControlEstudios;
   const isTeacher = userRole === UserRole.Teacher;
+  const isDirector = userRole === UserRole.Director;
 
   // Permisos combinados
-  const canManageStudents = isAdmin || isControlEstudios; // Admin y Control de Estudios pueden gestionar estudiantes
-  const canManageGrades = isAdmin || isControlEstudios; // Admin y Control pueden validar calificaciones
-  const canViewReports = isAdmin || isControlEstudios; // Admin y Control pueden ver reportes
-  const canManageAcademic = isAdmin || isControlEstudios; // Admin y Control pueden ver estructura académica
+  const canManageStudents = isAdmin || isControlEstudios || isDirector; // Admin, Control de Estudios y Director pueden gestionar estudiantes
+  const canManageGrades = isAdmin || isControlEstudios || isDirector; // Admin y Control pueden validar calificaciones
+  const canViewReports = isAdmin || isControlEstudios || isDirector; // Admin y Control pueden ver reportes
+  const canManageAcademic = isAdmin || isControlEstudios || isDirector; // Admin y Control pueden ver estructura académica
 
   return (
     <aside className="w-64 flex-shrink-0 bg-moon-nav p-6 hidden lg:flex flex-col">
