@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { type Student, type Materia, type Grado, type Seccion, type AñoEscolar, type Calificacion, type Evaluacion, UserRole, ModalType } from '../types';
+import { GradesSummaryTable } from './GradesSummaryTable';
 import { GradesTable } from './GradesTable';
 import { FileTextIcon, PlusIcon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
@@ -11,8 +12,8 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
   <button
     onClick={onClick}
     className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${active
-        ? 'bg-moon-purple text-white'
-        : 'text-moon-text-secondary hover:bg-moon-component hover:text-white'
+      ? 'bg-moon-purple text-white'
+      : 'text-moon-text-secondary hover:bg-moon-component hover:text-white'
       }`}
   >
     {children}
@@ -27,7 +28,7 @@ export const GradesPage: React.FC = () => {
   const [selectedGrado, setSelectedGrado] = useState<number | null>(null);
   const [selectedSeccion, setSelectedSeccion] = useState<number | null>(null);
   const [selectedMateria, setSelectedMateria] = useState<number | null>(null);
-  const [activeLapso, setActiveLapso] = useState<1 | 2 | 3>(1);
+  const [activeLapso, setActiveLapso] = useState<1 | 2 | 3 | 0>(1);
 
   if (!currentUser) return null;
   const isTeacher = currentUser.role === UserRole.Teacher;
@@ -132,19 +133,32 @@ export const GradesPage: React.FC = () => {
               <TabButton active={activeLapso === 1} onClick={() => setActiveLapso(1)}>Lapso 1</TabButton>
               <TabButton active={activeLapso === 2} onClick={() => setActiveLapso(2)}>Lapso 2</TabButton>
               <TabButton active={activeLapso === 3} onClick={() => setActiveLapso(3)}>Lapso 3</TabButton>
+              <TabButton active={activeLapso === 0} onClick={() => setActiveLapso(0)}>Resumen Final</TabButton>
             </div>
-            <button onClick={onAddEvaluation} className="bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
-              <PlusIcon /> <span className="ml-2 hidden sm:inline">Añadir Evaluación</span>
-            </button>
+            {activeLapso !== 0 && (
+              <button onClick={onAddEvaluation} className="bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+                <PlusIcon /> <span className="ml-2 hidden sm:inline">Añadir Evaluación</span>
+              </button>
+            )}
           </div>
-          <GradesTable
-            key={`${selectedAño}-${selectedMateria}-${activeLapso}`}
-            students={filteredStudents}
-            materiaId={selectedMateria!}
-            añoId={selectedAño!}
-            lapso={activeLapso}
-            calificaciones={calificaciones}
-          />
+
+          {activeLapso === 0 ? (
+            <GradesSummaryTable
+              students={filteredStudents}
+              materiaId={selectedMateria!}
+              añoId={selectedAño!}
+              calificaciones={calificaciones}
+            />
+          ) : (
+            <GradesTable
+              key={`${selectedAño}-${selectedMateria}-${activeLapso}`}
+              students={filteredStudents}
+              materiaId={selectedMateria!}
+              añoId={selectedAño!}
+              lapso={activeLapso}
+              calificaciones={calificaciones}
+            />
+          )}
         </div>
       ) : (
         <div className="mt-8 bg-moon-component border border-moon-border rounded-xl p-16 text-center">

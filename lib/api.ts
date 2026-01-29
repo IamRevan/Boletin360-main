@@ -77,6 +77,17 @@ export const api = {
     deleteUser: (id: number) => axiosInstance.delete(`/users/${id}`),
     resetPassword: (id: number, newPassword: string) => axiosInstance.post(`/users/${id}/reset-password`, { newPassword }),
 
+    // Announcements
+    getAnnouncements: () => axiosInstance.get('/announcements'),
+    createAnnouncement: (data: any) => axiosInstance.post('/announcements', data),
+    deleteAnnouncement: (id: number) => axiosInstance.delete(`/announcements/${id}`),
+
+    // Notifications
+    getNotifications: (userId: number) => axiosInstance.get(`/notifications?userId=${userId}`),
+    markNotificationRead: (id: number) => axiosInstance.put(`/notifications/${id}/read`),
+    markAllNotificationsRead: (userId: number) => axiosInstance.put('/notifications/read-all', { userId }),
+    deleteNotification: (id: number) => axiosInstance.delete(`/notifications/${id}`),
+
     // Gestión de Calificaciones
     syncGrades: (data: any) => axiosInstance.post('/calificaciones/sync', data),
 };

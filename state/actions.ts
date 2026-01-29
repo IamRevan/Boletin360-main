@@ -1,4 +1,4 @@
-import { Student, Teacher, Materia, AñoEscolar, Grado, Seccion, User, Evaluacion, Calificacion, ModalType } from '../types';
+import { Student, Teacher, Materia, AñoEscolar, Grado, Seccion, User, Evaluacion, Calificacion, ModalType, Announcement } from '../types';
 
 // Tipos de acciones para el reducer global
 export enum ActionType {
@@ -42,7 +42,14 @@ export enum ActionType {
   // Calificaciones
   ADD_EVALUATIONS = 'ADD_EVALUATIONS',
   UPDATE_EVALUATION_GRADE = 'UPDATE_EVALUATION_GRADE',
+  UPSERT_GRADE = 'UPSERT_GRADE',
   DELETE_EVALUATION_COLUMN = 'DELETE_EVALUATION_COLUMN',
+
+  // Notifications
+  MARK_NOTIFICATION_READ = 'MARK_NOTIFICATION_READ',
+  MARK_ALL_NOTIFICATIONS_READ = 'MARK_ALL_NOTIFICATIONS_READ',
+  SAVE_ANNOUNCEMENT = 'SAVE_ANNOUNCEMENT',
+  DELETE_ANNOUNCEMENT = 'DELETE_ANNOUNCEMENT',
 
   // Datos Iniciales
   SET_INITIAL_DATA = 'SET_INITIAL_DATA',
@@ -71,5 +78,10 @@ export type Action =
   | { type: ActionType.DELETE_SECCION; payload: number }
   | { type: ActionType.ADD_EVALUATIONS; payload: { studentIds: number[]; materiaId: number; añoId: number; lapso: 1 | 2 | 3; evaluations: { descripcion: string; ponderacion: number }[] } }
   | { type: ActionType.UPDATE_EVALUATION_GRADE; payload: { studentId: number; materiaId: number; añoId: number; lapso: 1 | 2 | 3; evaluationId: string; newNota: number; } }
+  | { type: ActionType.UPSERT_GRADE; payload: { studentId: number; materiaId: number; añoId: number; lapso: 1 | 2 | 3; description: string; ponderacion: number; newNota: number; } }
   | { type: ActionType.DELETE_EVALUATION_COLUMN; payload: { materiaId: number; añoId: number; lapso: 1 | 2 | 3; description: string; } }
-  | { type: ActionType.SET_INITIAL_DATA; payload: any }; // Using any for simplicity
+  | { type: ActionType.MARK_NOTIFICATION_READ; payload: number }
+  | { type: ActionType.MARK_ALL_NOTIFICATIONS_READ; payload: number }
+  | { type: ActionType.SAVE_ANNOUNCEMENT; payload: Announcement }
+  | { type: ActionType.DELETE_ANNOUNCEMENT; payload: number }
+  | { type: ActionType.SET_INITIAL_DATA; payload: any };

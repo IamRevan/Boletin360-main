@@ -11,6 +11,7 @@ import { AddSchoolYearModal } from './AddSchoolYearModal';
 import { AddUserModal } from './AddUserModal';
 import { AddEvaluationModal } from './AddEvaluationModal';
 import { ResetPasswordModal } from './ResetPasswordModal';
+import { CreateAnnouncementModal } from './CreateAnnouncementModal';
 import { ModalType } from '../types';
 
 export const ModalManager: React.FC = () => {
@@ -57,6 +58,9 @@ export const ModalManager: React.FC = () => {
         // Wait, I can't dispatch close here easily without importing dispatch.
         // Let's look at how other modals close. They probably dispatch CLOSE_MODAL.
         // Let's check AddUserModal.tsx to be sure.
+
+        case ModalType.CreateAnnouncement:
+            return <CreateAnnouncementModal />;
 
         default:
             return null;

@@ -114,7 +114,28 @@ export interface User {
 
 // --- Gestión del Estado de la Aplicación ---
 
-// Tipos de Modales disponibles en la aplicación
+// ... (interfaces)
+
+export interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  type: 'info' | 'warning' | 'success';
+  createdAt: string; // ISO Date
+}
+
+export interface Notification {
+  id: number;
+  userId: number;
+  title: string;
+  content: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  isRead: boolean;
+  createdAt: string; // ISO Date
+}
+
+// ...
+
 export enum ModalType {
   AddStudent = 'ADD_STUDENT',
   EditStudent = 'EDIT_STUDENT',
@@ -132,16 +153,15 @@ export enum ModalType {
   AddUser = 'ADD_USER',
   EditUser = 'EDIT_USER',
   AddEvaluation = 'ADD_EVALUATION',
+  CreateAnnouncement = 'CREATE_ANNOUNCEMENT',
 }
 
-// Estado del Gestor de Modales
 export interface ModalState {
-  isOpen: boolean; // Si el modal está visible
-  modalType: ModalType | null; // Qué modal mostrar
-  data: any | null; // Datos necesarios para el modal (e.g., estudiante a editar)
+  isOpen: boolean;
+  modalType: ModalType | null;
+  data: any | null;
 }
 
-// Estado Global de la Aplicación
 export interface AppState {
   currentUser: User | null; // Usuario logueado actual
   users: User[]; // Lista de usuarios (Solo Admin ve esto)
@@ -152,6 +172,8 @@ export interface AppState {
   grados: Grado[];
   secciones: Seccion[];
   calificaciones: Calificacion[];
+  announcements: Announcement[]; // Global announcements
+  notifications: Notification[]; // User notifications
   modalState: ModalState;
   isLoading?: boolean; // Indicador de carga de datos iniciales
 }

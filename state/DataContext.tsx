@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useReducer, useContext, Dispatch, useEffect, useState } from 'react';
+import React, { createContext, useReducer, useContext, Dispatch, useEffect, useState, useRef } from 'react';
 import { AppState, User, UserRole, Student, Teacher, Materia, AñoEscolar, Calificacion, Grado, Seccion, Evaluacion, ModalType } from '../types';
 import { Action, ActionType } from './actions';
 import { api } from '../lib/api';
@@ -18,6 +18,8 @@ const initialDataState: DataState = {
     grados: [],
     secciones: [],
     calificaciones: [],
+    announcements: [],
+    notifications: [],
     modalState: {
         isOpen: false,
         modalType: null,
@@ -279,6 +281,76 @@ const dataReducer = (state: DataState, action: Action): DataState => {
             });
             return { ...state, calificaciones: newCalificaciones };
         }
+        case ActionType.UPSERT_GRADE: {
+            const { studentId, materiaId, añoId, lapso, description, ponderacion, newNota } = action.payload;
+            const lapsoKey = `lapso${lapso}` as const;
+
+            let studentExistsInGrades = false;
+
+            let newCalificaciones = state.calificaciones.map(cal => {
+                if (cal.id === studentId && cal.id_materia === materiaId && cal.id_año_escolar === añoId) {
+                    studentExistsInGrades = true;
+                    // Check if evaluation exists
+                    const existingEvalIndex = cal[lapsoKey].findIndex(ev => ev.descripcion === description);
+
+                    let updatedLapso;
+                    if (existingEvalIndex >= 0) {
+                        // Update
+                        updatedLapso = [...cal[lapsoKey]];
+                        updatedLapso[existingEvalIndex] = { ...updatedLapso[existingEvalIndex], nota: newNota };
+                    } else {
+                        // Insert
+                        const newEval: Evaluacion = {
+                            id: `uuid-${studentId}-${description}-${Date.now()}-${Math.random()}`,
+                            descripcion: description,
+                            ponderacion,
+                            nota: newNota
+                        };
+                        updatedLapso = [...cal[lapsoKey], newEval];
+                    }
+
+                    const updatedCal = { ...cal, [lapsoKey]: updatedLapso };
+                    api.syncGrades({
+                        studentId, materiaId, añoId,
+                        lapso1: updatedCal.lapso1,
+                        lapso2: updatedCal.lapso2,
+                        lapso3: updatedCal.lapso3
+                    }).catch(console.error);
+                    return updatedCal;
+                }
+                return cal;
+            });
+
+            // If student has NO grades record yet for this class, we must create the Calificacion object entirely
+            if (!studentExistsInGrades) {
+                const newEval: Evaluacion = {
+                    id: `uuid-${studentId}-${description}-${Date.now()}-${Math.random()}`,
+                    descripcion: description,
+                    ponderacion,
+                    nota: newNota
+                };
+                const newCal: Calificacion = {
+                    id: studentId,
+                    id_materia: materiaId,
+                    id_año_escolar: añoId,
+                    lapso1: [],
+                    lapso2: [],
+                    lapso3: []
+                };
+                // Set the correct lapso
+                newCal[lapsoKey] = [newEval];
+                newCalificaciones = [...newCalificaciones, newCal];
+
+                api.syncGrades({
+                    studentId, materiaId, añoId,
+                    lapso1: newCal.lapso1,
+                    lapso2: newCal.lapso2,
+                    lapso3: newCal.lapso3
+                }).catch(console.error);
+            }
+
+            return { ...state, calificaciones: newCalificaciones };
+        }
         case ActionType.DELETE_EVALUATION_COLUMN: {
             const { materiaId, añoId, lapso, description } = action.payload;
             const lapsoKey = `lapso${lapso}` as const;
@@ -297,6 +369,33 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                 return cal;
             });
             return { ...state, calificaciones: newCalificaciones };
+        }
+
+        // Notifications & Announcements
+        case ActionType.MARK_NOTIFICATION_READ: {
+            const id = action.payload;
+            const newNotifications = state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n);
+            api.markNotificationRead(id).catch(console.error);
+            return { ...state, notifications: newNotifications };
+        }
+        case ActionType.MARK_ALL_NOTIFICATIONS_READ: {
+            const userId = action.payload;
+            const newNotifications = state.notifications.map(n => ({ ...n, isRead: true }));
+            if (userId) {
+                api.markAllNotificationsRead(userId).catch(console.error);
+            }
+            return { ...state, notifications: newNotifications };
+        }
+        case ActionType.SAVE_ANNOUNCEMENT: {
+            // For optimistic UI update when creating
+            const newAnnouncement = action.payload;
+            return { ...state, announcements: [newAnnouncement, ...state.announcements] };
+        }
+        case ActionType.DELETE_ANNOUNCEMENT: {
+            const id = action.payload;
+            const newAnnouncements = state.announcements.filter(a => a.id !== id);
+            api.deleteAnnouncement(id).catch(console.error);
+            return { ...state, announcements: newAnnouncements };
         }
 
         // Initial Data
@@ -319,6 +418,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
     const { currentUser } = useAuth(); // Fix for 401 error: Use auth context
 
+    const stateRef = useRef(state);
+
+    useEffect(() => {
+        stateRef.current = state;
+    }, [state]);
+
     useEffect(() => {
         const fetchData = async () => {
             // Block fetching if no user logged in
@@ -328,8 +433,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             try {
-                const response = await api.getInitialData();
-                dispatch({ type: ActionType.SET_INITIAL_DATA, payload: response.data });
+                const [initialDataRes, announcementsRes, notificationsRes] = await Promise.all([
+                    api.getInitialData(),
+                    api.getAnnouncements(),
+                    api.getNotifications(currentUser.id)
+                ]);
+
+                dispatch({
+                    type: ActionType.SET_INITIAL_DATA,
+                    payload: {
+                        ...initialDataRes.data,
+                        announcements: announcementsRes.data,
+                        notifications: notificationsRes.data
+                    }
+                });
             } catch (error) {
                 console.error("Failed to fetch initial data", error);
             } finally {
@@ -337,6 +454,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
         fetchData();
+
+        // Polling logic
+        const intervalId = setInterval(async () => {
+            if (!currentUser) return;
+            try {
+                const [initialDataRes, announcementsRes, notificationsRes] = await Promise.all([
+                    api.getInitialData(),
+                    api.getAnnouncements(),
+                    api.getNotifications(currentUser.id)
+                ]);
+
+                const newData = {
+                    ...initialDataRes.data,
+                    announcements: announcementsRes.data,
+                    notifications: notificationsRes.data
+                };
+
+                const currentState = stateRef.current; // Access latest state via ref
+
+                // Simple check to avoid unnecessary re-renders
+                const hasChanges =
+                    JSON.stringify(newData.students) !== JSON.stringify(currentState.students) ||
+                    JSON.stringify(newData.calificaciones) !== JSON.stringify(currentState.calificaciones) ||
+                    JSON.stringify(newData.materias) !== JSON.stringify(currentState.materias) ||
+                    JSON.stringify(newData.announcements) !== JSON.stringify(currentState.announcements) ||
+                    JSON.stringify(newData.notifications) !== JSON.stringify(currentState.notifications);
+
+                if (hasChanges) {
+                    // Only dispatch if something meaningful changed
+                    dispatch({ type: ActionType.SET_INITIAL_DATA, payload: newData });
+                }
+            } catch (error) {
+                console.error("Silent poll failed", error);
+            }
+        }, 10000); // 10 seconds
+
+        return () => clearInterval(intervalId);
     }, [currentUser]); // Retry fetching if user logs in
 
     if (loading) {

@@ -26,8 +26,33 @@ model User {
   deletedAt DateTime? @map("deleted_at")
   
   teacher   Teacher?  @relation(fields: [teacherId], references: [id])
+  notifications Notification[]
 
   @@map("users")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  type      String   @default("info") // info, warning, success
+  createdBy Int      @map("created_by") // Admin User ID
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("announcements")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String
+  content   String
+  type      String   @default("info") // info, success, warning, error
+  isRead    Boolean  @default(false)  @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  user      User     @relation(fields: [userId], references: [id])
+  @@map("notifications")
 }
 
 model Student {

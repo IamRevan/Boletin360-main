@@ -9,6 +9,11 @@ import studentRoutes from './routes/students.routes';
 import teacherRoutes from './routes/teachers.routes';
 import academicRoutes from './routes/academic.routes';
 import gradesRoutes from './routes/grades.routes';
+import announcementRoutes from './routes/announcements.routes';
+import notificationRoutes from './routes/notifications.routes';
+
+// ... (other imports)
+
 import auditRoutes from './routes/audit.routes';
 import { apiLimiter, authLimiter } from './middleware/rateLimit';
 import { errorHandler } from './middleware/errorHandler';
@@ -30,7 +35,8 @@ app.use('/api/students', studentRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api', academicRoutes); // Mounted at /api because it contains /grados, /secciones (e.g. /api/grados)
 app.use('/api', gradesRoutes);   // Mounted at /api because it contains /initial-data, /reports
-app.use('/api', auditRoutes);    // Mounted at /api because it contains /audit-logs
+app.use('/api', announcementRoutes);
+app.use('/api', notificationRoutes);
 
 // Error handler (debe ser el último middleware)
 app.use(errorHandler);
