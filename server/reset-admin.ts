@@ -26,7 +26,7 @@ async function resetAdmin() {
                     apellidos: 'Principal',
                     email,
                     password: hashedPassword,
-                    role: 'Admin'
+                    role: 'ADMIN'
                 }
             });
         }

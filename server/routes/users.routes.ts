@@ -7,9 +7,9 @@ const router = Router();
 // Todas las rutas requieren autenticación y rol Admin (o Director para algunas)
 router.use(authenticateToken);
 
-router.post('/', authorizeRole(['Admin', 'Director']), createUser);
-router.put('/:id', authorizeRole(['Admin', 'Director']), updateUser);
-router.delete('/:id', authorizeRole(['Admin']), deleteUser);
-router.post('/:id/reset-password', authorizeRole(['Admin']), resetPassword);
+router.post('/', authorizeRole(['ADMIN', 'DIRECTOR']), createUser);
+router.put('/:id', authorizeRole(['ADMIN', 'DIRECTOR']), updateUser);
+router.delete('/:id', authorizeRole(['ADMIN']), deleteUser);
+router.post('/:id/reset-password', authorizeRole(['ADMIN']), resetPassword);
 
 export default router;

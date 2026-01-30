@@ -76,7 +76,7 @@ const seedFullData = async () => {
                 const insert = await query(
                     `INSERT INTO students 
                     (nacionalidad, cedula, nombres, apellidos, email, genero, fecha_nacimiento, id_grado, id_seccion, status) 
-                    VALUES ('V', $1, $2, $3, $4, 'F', '2010-01-01', $5, $6, 'Activo') RETURNING id`,
+                    VALUES ('V', $1, $2, $3, $4, 'F', '2010-01-01', $5, $6, 'ACTIVO') RETURNING id`,
                     [ts.c, ts.n, ts.a, `test_${ts.c}@boletin360.com`, gradeId, sectionId]
                 );
                 studentId = insert.rows[0].id;

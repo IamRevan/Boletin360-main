@@ -6,10 +6,10 @@ const router = Router();
 
 router.use(authenticateToken);
 
-router.post('/', authorizeRole(['Admin', 'Control de Estudios', 'Director']), createStudent);
-router.put('/:id', authorizeRole(['Admin', 'Control de Estudios', 'Director']), updateStudent);
-router.delete('/:id', authorizeRole(['Admin', 'Control de Estudios', 'Director']), deleteStudent);
-router.post('/promote', authorizeRole(['Admin']), promoteStudents);
+router.post('/', authorizeRole(['ADMIN', 'CONTROL_ESTUDIOS', 'DIRECTOR']), createStudent);
+router.put('/:id', authorizeRole(['ADMIN', 'CONTROL_ESTUDIOS', 'DIRECTOR']), updateStudent);
+router.delete('/:id', authorizeRole(['ADMIN', 'CONTROL_ESTUDIOS', 'DIRECTOR']), deleteStudent);
+router.post('/promote', authorizeRole(['ADMIN']), promoteStudents);
 router.get('/:id/profile', getStudentProfile);
 
 export default router;

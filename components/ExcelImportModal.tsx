@@ -7,6 +7,7 @@ import { useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
 import { api } from '../lib/api';
 import { useToast } from '../state/ToastContext';
+import { StudentStatus } from '../types';
 
 interface ImportedStudent {
     nacionalidad: string;
@@ -102,7 +103,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
             try {
                 const response = await api.createStudent({
                     ...student,
-                    status: 'Activo'
+                    status: StudentStatus.ACTIVO
                 });
                 dispatch({ type: ActionType.SAVE_STUDENT, payload: response.data });
                 successCount++;

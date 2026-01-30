@@ -2,7 +2,7 @@
 
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { type Student, type User, UserRole, type Grado, type Seccion, ModalType } from '../types';
+import { type Student, type User, UserRole, type Grado, type Seccion, ModalType, StudentStatus } from '../types';
 import { Avatar } from './ui/Avatar';
 import { api } from '../lib/api';
 import { StatCard } from './StatCard';
@@ -173,7 +173,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
 
   if (!currentUser) return null;
 
-  const isTeacher = currentUser.role === UserRole.Teacher;
+  const isTeacher = currentUser.role === UserRole.DOCENTE;
 
   // Handlers para modales
   const onAddStudentClick = () => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddStudent } });
@@ -220,7 +220,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
   const totalStudents = students.length;
   const totalTeachers = teachers.length;
   const totalSubjects = materias.length;
-  const graduates = students.filter(s => s.status === 'Egresado').length;
+  const graduates = students.filter(s => s.status === StudentStatus.GRADUADO).length;
 
   return (
     <div className="space-y-8 animate-[fade-in_0.5s_ease-out]">

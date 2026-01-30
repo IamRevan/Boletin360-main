@@ -14,13 +14,35 @@ datasource db {
 // Representación del esquema actual (Mapping existing tables)
 
 
+
+// Enums
+enum UserRole {
+  DIRECTOR
+  CONTROL_ESTUDIOS
+  DOCENTE
+  ADMIN
+}
+
+enum StudentStatus {
+  ACTIVO
+  RETIRADO
+  GRADUADO
+  INACTIVO
+}
+
+enum TeacherStatus {
+  ACTIVO
+  INACTIVO
+}
+
 model User {
   id        Int       @id @default(autoincrement())
   nombres   String
   apellidos String
   email     String    @unique
   password  String
-  role      String    // 'Admin', 'ControlEstudios', 'Teacher'
+  role      UserRole  // Enforced Enum
+
   teacherId Int?      @map("teacher_id")
   createdAt DateTime  @default(now()) @map("created_at")
   deletedAt DateTime? @map("deleted_at")
@@ -28,6 +50,7 @@ model User {
   teacher   Teacher?  @relation(fields: [teacherId], references: [id])
   notifications Notification[]
 
+  @@index([teacherId]) // Performance Index
   @@map("users")
 }
 
@@ -74,13 +97,15 @@ model Student {
   observaciones   String?
   idGrado         Int?      @map("id_grado")
   idSeccion       Int?      @map("id_seccion")
-  status          String    @default("Activo")
+  status          StudentStatus @default(ACTIVO)
   deletedAt       DateTime? @map("deleted_at")
 
-  grado         Grado?          @relation(fields: [idGrado], references: [id])
-  seccion       Seccion?        @relation(fields: [idSeccion], references: [id])
+  grado         Grado?          @relation(fields: [idGrado], references: [id], onDelete: Restrict)
+  seccion       Seccion?        @relation(fields: [idSeccion], references: [id], onDelete: Restrict)
   calificaciones Calificacion[]
 
+  @@index([idGrado])
+  @@index([idSeccion])
   @@map("students")
 }
 
@@ -91,7 +116,7 @@ model Teacher {
   nombres      String
   apellidos    String
   email        String
-  status       String @default("Activo")
+  status       TeacherStatus @default(ACTIVO)
 
   users     User[]
   materias  Materia[]
@@ -106,11 +131,14 @@ model Materia {
   idGrado       Int?   @map("id_grado")
   idSeccion     Int?   @map("id_seccion")
 
-  docente       Teacher?     @relation(fields: [idDocente], references: [id])
-  grado         Grado?       @relation(fields: [idGrado], references: [id])
-  seccion       Seccion?     @relation(fields: [idSeccion], references: [id])
+  docente       Teacher?     @relation(fields: [idDocente], references: [id], onDelete: Restrict)
+  grado         Grado?       @relation(fields: [idGrado], references: [id], onDelete: Restrict)
+  seccion       Seccion?     @relation(fields: [idSeccion], references: [id], onDelete: Restrict)
   calificaciones Calificacion[]
 
+  @@index([idDocente])
+  @@index([idGrado])
+  @@index([idSeccion])
   @@map("materias")
 }
 
@@ -144,20 +172,38 @@ model AnosEscolares {
 }
 
 model Calificacion {
+  id           Int     @id @default(autoincrement()) // Surrogate Key for Relations
   studentId    Int     @map("student_id")
   materiaId    Int     @map("materia_id")
   anoEscolarId Int     @map("ano_escolar_id")
-  lapso1       Json?   
-  lapso2       Json?
-  lapso3       Json?
+  
   isLocked     Boolean @default(false) @map("is_locked")
 
-  student    Student       @relation(fields: [studentId], references: [id])
-  materia    Materia       @relation(fields: [materiaId], references: [id])
-  anoEscolar AnosEscolares @relation(fields: [anoEscolarId], references: [id])
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  materia    Materia       @relation(fields: [materiaId], references: [id], onDelete: Restrict)
+  anoEscolar AnosEscolares @relation(fields: [anoEscolarId], references: [id], onDelete: Restrict)
+  
+  evaluations Evaluation[]
 
-  @@id([studentId, materiaId, anoEscolarId])
+  @@unique([studentId, materiaId, anoEscolarId]) // Composite Unique Constraint
+  @@index([studentId])
+  @@index([materiaId])
+  @@index([anoEscolarId])
   @@map("calificaciones")
+}
+
+model Evaluation {
+  id             Int          @id @default(autoincrement())
+  calificacionId Int          @map("calificacion_id")
+  lapso          Int          // 1, 2, 3
+  descripcion    String
+  nota           Decimal      @db.Decimal(5,2)
+  ponderacion    Decimal      @db.Decimal(5,2)
+  
+  calificacion   Calificacion @relation(fields: [calificacionId], references: [id], onDelete: Cascade)
+
+  @@index([calificacionId])
+  @@map("evaluations")
 }
 
 model AuditLog {
@@ -167,5 +213,6 @@ model AuditLog {
   details   String?
   timestamp DateTime @default(now())
 
+  @@index([userId])
   @@map("audit_logs")
 }

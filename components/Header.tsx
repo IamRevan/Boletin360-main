@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ onLogout, currentUser, onNavigat
                   <UserIcon />
                   <span className="ml-3">Mi Perfil</span>
                 </button>
-                {currentUser.role === UserRole.Admin && (
+                {currentUser.role === UserRole.ADMIN && (
                   <button onClick={() => { onNavigate('settings'); setDropdownOpen(false); }} className="w-full flex items-center px-3 py-2 text-sm text-moon-text rounded-lg hover:bg-moon-nav">
                     <CogIcon />
                     <span className="ml-3">Configuración</span>

@@ -34,7 +34,7 @@ const dataReducer = (state: DataState, action: Action): DataState => {
             const userPayload = action.payload;
             const fullData = { ...state };
 
-            if (userPayload.role === UserRole.Teacher) {
+            if (userPayload.role === UserRole.DOCENTE) {
                 const teacherProfile = fullData.teachers.find(t => t.id === userPayload.teacherId);
 
                 if (teacherProfile) {

@@ -83,7 +83,7 @@ export const NotificationPopover: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-moon-component rounded-lg shadow-xl border border-moon-border z-50 animate-[fade-in_0.1s_ease-out] overflow-hidden flex flex-col max-h-[500px]">
                     <div className="p-3 border-b border-moon-border bg-moon-nav/50 flex justify-between items-center">
                         <h3 className="font-semibold text-white text-sm">Centro de Notificaciones</h3>
-                        {currentUser?.role === UserRole.Admin && (
+                        {currentUser?.role === UserRole.ADMIN && (
                             <button
                                 onClick={handleCreateAnnouncement}
                                 className="text-xs flex items-center gap-1 bg-moon-purple px-2 py-1 rounded text-white hover:bg-moon-purple-light transition-colors"
@@ -146,7 +146,7 @@ export const NotificationPopover: React.FC = () => {
                                         <li key={announcement.id} className="p-3 border-b border-moon-border hover:bg-moon-nav/30 transition-colors relative">
                                             <div className="flex items-start">
                                                 <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${announcement.type === 'warning' ? 'bg-yellow-500' :
-                                                        announcement.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+                                                    announcement.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
                                                     }`}></div>
                                                 <div className="ml-3 flex-1">
                                                     <p className="text-sm font-medium text-white">{announcement.title}</p>

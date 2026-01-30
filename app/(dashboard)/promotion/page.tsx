@@ -5,6 +5,7 @@ import { useAppState, useAppDispatch } from '@/state/AppContext';
 import { api } from '@/lib/api';
 import { ActionType } from '@/state/actions';
 import { LayersIcon, ArrowRightIcon, CheckCircleIcon, UsersIcon } from '@/components/Icons';
+import { StudentStatus } from '@/types';
 
 export default function PromotionPage() {
     const { students, grados, secciones } = useAppState();
@@ -25,7 +26,7 @@ export default function PromotionPage() {
     // Filtrar estudiantes del origen
     const sourceStudents = useMemo(() => {
         if (!sourceGradoId || !sourceSeccionId) return [];
-        return students.filter(s => s.id_grado === sourceGradoId && s.id_seccion === sourceSeccionId && s.status === 'Activo');
+        return students.filter(s => s.id_grado === sourceGradoId && s.id_seccion === sourceSeccionId && s.status === StudentStatus.ACTIVO);
     }, [students, sourceGradoId, sourceSeccionId]);
 
     // Manejar checkboxes

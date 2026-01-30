@@ -14,7 +14,7 @@ const initialFormState: Omit<User, 'id'> & { confirmPassword?: string } = {
   email: '',
   password: '',
   confirmPassword: '',
-  role: UserRole.Teacher,
+  role: UserRole.DOCENTE,
   teacherId: null,
 };
 
@@ -70,14 +70,14 @@ export const AddUserModal: React.FC = () => {
       return;
     }
 
-    if (formData.role === UserRole.Teacher && !formData.teacherId) {
+    if (formData.role === UserRole.DOCENTE && !formData.teacherId) {
       alert("Debe seleccionar un perfil de docente para vincularlo a este usuario.");
       return;
     }
 
     // Clean up data before saving
     const finalData = { ...formData };
-    if (finalData.role !== UserRole.Teacher) {
+    if (finalData.role !== UserRole.DOCENTE) {
       finalData.teacherId = null;
     }
     delete finalData.confirmPassword;
@@ -153,7 +153,7 @@ export const AddUserModal: React.FC = () => {
                 {Object.values(UserRole).map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
-            {formData.role === UserRole.Teacher && (
+            {formData.role === UserRole.DOCENTE && (
               <div className="animate-[fade-in_0.2s_ease-out]">
                 <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Vincular a Docente</label>
                 <select name="teacherId" value={formData.teacherId || ''} onChange={handleNumericChange} className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5">

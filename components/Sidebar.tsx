@@ -16,10 +16,10 @@ const NavItem: React.FC<{ icon: React.ReactNode; label: string; active?: boolean
 );
 
 export const Sidebar: React.FC<{ setCurrentPage: (page: string) => void, currentPage: string, userRole: UserRole }> = ({ setCurrentPage, currentPage, userRole }) => {
-  const isAdmin = userRole === UserRole.Admin;
-  const isControlEstudios = userRole === UserRole.ControlEstudios;
-  const isTeacher = userRole === UserRole.Teacher;
-  const isDirector = userRole === UserRole.Director;
+  const isAdmin = userRole === UserRole.ADMIN;
+  const isControlEstudios = userRole === UserRole.CONTROL_ESTUDIOS;
+  const isTeacher = userRole === UserRole.DOCENTE;
+  const isDirector = userRole === UserRole.DIRECTOR;
 
   // Permisos combinados
   const canManageStudents = isAdmin || isControlEstudios || isDirector; // Admin, Control de Estudios y Director pueden gestionar estudiantes

@@ -57,13 +57,16 @@ export const getInitialData = async (req: AuthRequest, res: Response) => {
             fecha_nacimiento: s.fechaNacimiento ? s.fechaNacimiento.toISOString().split('T')[0] : null
         }));
 
+        // Note: Calificaciones now use normalized Evaluation table
+        // Frontend will need to fetch evaluations separately or we aggregate here
         const formatCalificaciones = calificaciones.map(c => ({
             id: c.studentId,
             id_materia: c.materiaId,
             id_año_escolar: c.anoEscolarId,
-            lapso1: c.lapso1,
-            lapso2: c.lapso2,
-            lapso3: c.lapso3
+            // Removed lapso1/2/3 - frontend should query evaluations endpoint
+            lapso1: [], // Empty arrays for backward compat
+            lapso2: [],
+            lapso3: []
         }));
 
         const formatUsers = users.map(u => ({

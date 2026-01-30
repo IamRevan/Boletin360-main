@@ -1,8 +1,16 @@
 import { Request, Response } from 'express';
 import { prisma } from '../db';
-import { GradeSyncSchema } from '../schemas';
+import { GradeSyncSchema, } from '../schemas';
 import { AuthRequest } from '../middleware/auth';
 import ExcelJS from 'exceljs';
+
+// Define UserRole enum locally until Prisma client is regenerated
+enum UserRole {
+    ADMIN = 'ADMIN',
+    DIRECTOR = 'DIRECTOR',
+    CONTROL_ESTUDIOS = 'CONTROL_ESTUDIOS',
+    DOCENTE = 'DOCENTE'
+}
 
 export const syncGrades = async (req: AuthRequest, res: Response) => {
     const validation = GradeSyncSchema.safeParse(req.body);
@@ -13,7 +21,8 @@ export const syncGrades = async (req: AuthRequest, res: Response) => {
     const userRole = req.user?.role;
 
     try {
-        const check = await prisma.calificacion.findUnique({
+        // Find existing Calificacion or Create it
+        let calificacion = await prisma.calificacion.findUnique({
             where: {
                 studentId_materiaId_anoEscolarId: {
                     studentId,
@@ -23,32 +32,52 @@ export const syncGrades = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        if (check) {
-            if (check.isLocked && !['Admin', 'Control de Estudios', 'Director'].includes(userRole)) {
+        if (calificacion) {
+            // Check lock status
+            if (calificacion.isLocked && ![UserRole.ADMIN, UserRole.CONTROL_ESTUDIOS, UserRole.DIRECTOR].includes(userRole as any)) {
                 return res.status(403).json({ error: 'Calificaciones bloqueadas/aprobadas. No se pueden editar.' });
             }
-            await prisma.calificacion.update({
-                where: {
-                    studentId_materiaId_anoEscolarId: {
-                        studentId,
-                        materiaId,
-                        anoEscolarId: añoId
-                    }
-                },
-                data: { lapso1: lapso1 as any, lapso2: lapso2 as any, lapso3: lapso3 as any }
-            });
         } else {
-            await prisma.calificacion.create({
+            // Create new container
+            calificacion = await prisma.calificacion.create({
                 data: {
                     studentId,
                     materiaId,
                     anoEscolarId: añoId,
-                    lapso1: lapso1 as any,
-                    lapso2: lapso2 as any,
-                    lapso3: lapso3 as any
+                    isLocked: false
                 }
             });
         }
+
+        const cid = calificacion.id;
+
+        // Helper to process evaluations (Sync: Delete old for lapso, insert new)
+        const processLapso = async (lapsoNum: number, items: any[]) => {
+            if (!items) return;
+            // Transactional replacement for safety
+            await prisma.$transaction([
+                prisma.evaluation.deleteMany({
+                    where: { calificacionId: cid, lapso: lapsoNum }
+                }),
+                prisma.evaluation.createMany({
+                    data: items.map(item => ({
+                        calificacionId: cid,
+                        lapso: lapsoNum,
+                        descripcion: item.nombre,
+                        nota: item.nota,
+                        ponderacion: item.ponderacion
+                    }))
+                })
+            ]);
+        };
+
+        // Execute sequentially or parallel (Parallel is fine here)
+        await Promise.all([
+            processLapso(1, lapso1),
+            processLapso(2, lapso2),
+            processLapso(3, lapso3)
+        ]);
+
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -81,11 +110,17 @@ export const getBoletin = async (req: Request, res: Response) => {
 
         if (!student) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
+        // Query Aggregated Grades
         const boletin = await prisma.$queryRaw`
             SELECT 
-                c.lapso1, c.lapso2, c.lapso3, c.is_locked,
                 m.id as materia_id,
                 m.nombre_materia,
+                c.is_locked,
+                
+                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
+                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
+                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3,
+
                 g.nombre_grado,
                 s.nombre_seccion,
                 t.nombres as docente_nombres, t.apellidos as docente_apellidos
@@ -114,8 +149,6 @@ export const getBoletin = async (req: Request, res: Response) => {
 export const getActa = async (req: Request, res: Response) => {
     const { anoEscolarId, gradoId, seccionId, studentId } = req.query;
 
-    // Support either Batch (Grado/Seccion) or Individual (StudentId)
-    // But since UI is now Individual, we prioritize studentId logic.
     if (!anoEscolarId) return res.status(400).json({ error: 'Faltan parámetros' });
 
     try {
@@ -124,54 +157,40 @@ export const getActa = async (req: Request, res: Response) => {
         let fetchedSeccionId = seccionId;
 
         if (studentId) {
-            // Individual Mode: Fetch student data first to get their Grade/Seccion
             const studentData = await prisma.student.findUnique({
                 where: { id: Number(studentId) },
-                include: {
-                    grado: true,
-                    seccion: true
-                }
+                include: { grado: true, seccion: true }
             });
 
             if (!studentData) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
-            // Asignar IDs de grado/seccion del estudiante si no se enviaron
             fetchedGradoId = studentData.idGrado as any;
             fetchedSeccionId = studentData.idSeccion as any;
-
-            // Mock result structure using student data directly needed for Constancia
-            // Since Constancia logic doesn't strictly need queryRaw of grades unless we want to, 
-            // but the ActaReport generic structure expects "acta" array with student details.
-            // We'll construct a single student object.
-
-            // Note: Original query calculates averages using 'calificaciones'. 
-            // If we want to fully support "Grade Sheet" legacy data, we query grades. 
-            // But Constancia usually just needs name/Enrollment. 
-            // However, keeping the "acta" structure populated allows ActaReport to work without changes.
-            // Let's reuse the query but filter by studentId.
 
             result = await prisma.$queryRaw`
                 SELECT 
                     st.id as student_id, st.nombres, st.apellidos, st.cedula,
                     m.id as materia_id, m.nombre_materia,
-                    c.lapso1, c.lapso2, c.lapso3, c.is_locked
+                    c.is_locked,
+                    (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
+                    (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
+                    (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
                 FROM students st
                 LEFT JOIN calificaciones c ON st.id = c.student_id AND c.ano_escolar_id = ${Number(anoEscolarId)}
                 LEFT JOIN materias m ON c.materia_id = m.id
                 WHERE st.id = ${Number(studentId)}
             `;
-            // Note: Changed to LEFT JOIN to ensure student appears even if no grades exist yes (just enrolled).
-            // But if no grades, `result` might have null materia fields. 
-            // The ActaReport iteration relies on `materias`. If empty, it's fine.
 
         } else {
-            // Batch Mode (Legacy or if accessed directly API)
             if (!gradoId || !seccionId) return res.status(400).json({ error: 'Falta Grado/Seccion o StudentId' });
             result = await prisma.$queryRaw`
                 SELECT 
                     st.id as student_id, st.nombres, st.apellidos, st.cedula,
                     m.id as materia_id, m.nombre_materia,
-                    c.lapso1, c.lapso2, c.lapso3, c.is_locked
+                    c.is_locked,
+                    (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
+                    (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
+                    (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
                 FROM students st
                 JOIN calificaciones c ON st.id = c.student_id
                 JOIN materias m ON c.materia_id = m.id
@@ -191,11 +210,11 @@ export const getActa = async (req: Request, res: Response) => {
                     materias: []
                 });
             }
-            if (row.materia_id) { // Check if materia exists (due to Left Join)
+            if (row.materia_id) {
                 studentsMap.get(row.student_id).materias.push({
                     materia_id: row.materia_id,
                     nombre_materia: row.nombre_materia,
-                    lapso1: row.lapso1,
+                    lapso1: row.lapso1, // Now a single number (averaged/summed)
                     lapso2: row.lapso2,
                     lapso3: row.lapso3,
                     is_locked: row.is_locked
@@ -228,7 +247,9 @@ export const exportXlsx = async (req: Request, res: Response) => {
             SELECT 
                 st.id as student_id, st.nombres, st.apellidos, st.cedula,
                 m.id as materia_id, m.nombre_materia,
-                c.lapso1, c.lapso2, c.lapso3
+                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
+                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
+                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
             FROM students st
             JOIN calificaciones c ON st.id = c.student_id
             JOIN materias m ON c.materia_id = m.id
@@ -271,21 +292,8 @@ export const exportXlsx = async (req: Request, res: Response) => {
                     materias: {}
                 });
             }
-            // Calculate Definitiva logic (simplified for export)
-            // ... logic from original file
-            // For now just dumping "OK" or similar if full logic is too big to copy-paste blindly without logic check.
-            // But let's try to do a basic average.
-
-            const getN = (arr: any[]) => {
-                if (!arr || arr.length === 0) return 0;
-                return arr.reduce((acc, curr) => acc + (curr.nota * (curr.ponderacion / 100)), 0);
-            };
-
-            const def1 = getN(r.lapso1 as any[]);
-            const def2 = getN(r.lapso2 as any[]);
-            const def3 = getN(r.lapso3 as any[]);
-            const final = (def1 + def2 + def3) / 3; // Rough approx
-
+            // Calculated values directly from SQL
+            const final = ((r.lapso1 || 0) + (r.lapso2 || 0) + (r.lapso3 || 0)) / 3;
             studentsLink.get(r.student_id).materias[r.materia_id] = final.toFixed(1);
         });
 

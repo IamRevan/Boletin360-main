@@ -36,7 +36,7 @@ const runTests = async () => {
                 apellidos: 'User',
                 email: 'hacker@boletin360.com',
                 password: 'password123',
-                role: 'Admin'
+                role: 'ADMIN'
             }, { headers: { Authorization: `Bearer ${teacherToken}` } });
             console.error('RBAC FAILED: Teacher was able to create user!');
         } catch (err: any) {

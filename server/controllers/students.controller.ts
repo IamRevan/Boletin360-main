@@ -32,7 +32,7 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
                 observaciones,
                 idGrado: id_grado,
                 idSeccion: id_seccion,
-                status
+                status: status as any // Cast to StudentStatus enum
             }
         });
 

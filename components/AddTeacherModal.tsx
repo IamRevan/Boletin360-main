@@ -14,7 +14,7 @@ const initialFormState: Omit<Teacher, 'id'> = {
   nombres: '',
   apellidos: '',
   email: '',
-  status: TeacherStatus.Activo,
+  status: TeacherStatus.ACTIVO,
 };
 
 // Modal para Añadir o Editar Docente

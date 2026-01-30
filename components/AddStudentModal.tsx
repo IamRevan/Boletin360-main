@@ -18,7 +18,7 @@ const initialFormState: Omit<Student, 'id'> = {
   fecha_nacimiento: '',
   id_grado: null,
   id_seccion: null,
-  status: StudentStatus.Activo,
+  status: StudentStatus.ACTIVO,
   lugarNacimiento: '',
   direccion: '',
   telefono: '',

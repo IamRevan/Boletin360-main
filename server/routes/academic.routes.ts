@@ -22,9 +22,9 @@ router.use('/secciones', seccionesRouter);
 
 // School Years
 const yearsRouter = Router();
-yearsRouter.post('/', authorizeRole(['Admin']), AcademicController.createSchoolYear);
-yearsRouter.put('/:id', authorizeRole(['Admin']), AcademicController.updateSchoolYear);
-yearsRouter.delete('/:id', authorizeRole(['Admin']), AcademicController.deleteSchoolYear);
+yearsRouter.post('/', authorizeRole(['ADMIN']), AcademicController.createSchoolYear);
+yearsRouter.put('/:id', authorizeRole(['ADMIN']), AcademicController.updateSchoolYear);
+yearsRouter.delete('/:id', authorizeRole(['ADMIN']), AcademicController.deleteSchoolYear);
 router.use('/schoolyears', yearsRouter);
 
 // Materias

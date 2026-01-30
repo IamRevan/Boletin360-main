@@ -6,7 +6,7 @@ export const CreateUserSchema = z.object({
     apellidos: z.string().min(1, "Apellidos son requeridos"),
     email: z.string().email("Dirección de correo inválida"),
     password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
-    role: z.enum(['Admin', 'Director', 'Control de Estudios', 'Docente']),
+    role: z.enum(['ADMIN', 'DIRECTOR', 'CONTROL_ESTUDIOS', 'DOCENTE']),
     teacherId: z.number().nullable().optional(), // ID opcional si el usuario es un docente
 });
 
@@ -16,7 +16,7 @@ export const UpdateUserSchema = z.object({
     apellidos: z.string().min(1, "Apellidos son requeridos"),
     email: z.string().email("Dirección de correo inválida"),
     password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional().or(z.literal('')), // Permite string vacío para no cambiar contraseña
-    role: z.enum(['Admin', 'Director', 'Control de Estudios', 'Docente']),
+    role: z.enum(['ADMIN', 'DIRECTOR', 'CONTROL_ESTUDIOS', 'DOCENTE']),
     teacherId: z.number().nullable().optional(),
 });
 

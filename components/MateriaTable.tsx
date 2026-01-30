@@ -65,12 +65,12 @@ export const MateriaTable: React.FC<MateriaTableProps> = ({ materias, teachers, 
     if (!teacher) return 'Desconocido';
 
     const fullName = `${teacher.nombres} ${teacher.apellidos}`;
-    if (teacher.status === TeacherStatus.Inactivo) {
+    if (teacher.status === TeacherStatus.INACTIVO) {
       return (
         <div className="flex items-center">
           <span className="text-moon-text-secondary">{fullName}</span>
           <span className="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-moon-orange/20 text-moon-orange">
-            Inactivo
+            INACTIVO
           </span>
         </div>
       );

@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
-RUN npm ci
+RUN npm install
 RUN npx prisma generate
 
 # Build stage
@@ -29,13 +29,14 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 expressjs
 
-# Copy necessary files
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/package.json ./
-# Copy utility scripts for initialization
-COPY --from=builder /app/*.ts ./
+# Copy necessary files with correct ownership
+COPY --from=builder --chown=expressjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=expressjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=expressjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=expressjs:nodejs /app/package.json ./
+COPY --from=builder --chown=expressjs:nodejs /app/tsconfig.json ./
+COPY --from=builder --chown=expressjs:nodejs /app/*.ts ./
+COPY --from=builder --chown=expressjs:nodejs /app/tests ./tests
 
 USER expressjs
 

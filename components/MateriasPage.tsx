@@ -28,7 +28,7 @@ export const MateriasPage: React.FC = () => {
   }>({ isOpen: false, materiaId: null, materiaName: '' });
 
   if (!currentUser) return null;
-  const isTeacher = currentUser.role === UserRole.Teacher;
+  const isTeacher = currentUser.role === UserRole.DOCENTE;
 
   // Handlers para acciones
   const onAdd = () => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddMateria } });

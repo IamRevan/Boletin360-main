@@ -31,7 +31,7 @@ export const GradesPage: React.FC = () => {
   const [activeLapso, setActiveLapso] = useState<1 | 2 | 3 | 0>(1);
 
   if (!currentUser) return null;
-  const isTeacher = currentUser.role === UserRole.Teacher;
+  const isTeacher = currentUser.role === UserRole.DOCENTE;
 
   // UX Improvement: Pre-select the first available class for the teacher
   useEffect(() => {

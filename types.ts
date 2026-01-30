@@ -1,9 +1,10 @@
 
-// Enumeración para el estatus del estudiante
+// Student Status Enum (Strict values from Prisma)
 export enum StudentStatus {
-  Activo = 'Activo',
-  Inactivo = 'Inactivo',
-  Egresado = 'Egresado',
+  ACTIVO = 'ACTIVO',
+  RETIRADO = 'RETIRADO',
+  GRADUADO = 'GRADUADO',
+  INACTIVO = 'INACTIVO'
 }
 
 // Interfaz para Grados (e.g., 1er Año, 2do Año)
@@ -41,10 +42,10 @@ export interface Student {
   observaciones?: string;
 }
 
-// Enumeración para estatus del docente
+// Teacher Status Enum (Strict values from Prisma)
 export enum TeacherStatus {
-  Activo = 'Activo',
-  Inactivo = 'Inactivo',
+  ACTIVO = 'ACTIVO',
+  INACTIVO = 'INACTIVO'
 }
 
 // Interfaz de Docente
@@ -91,14 +92,12 @@ export interface Calificacion {
   lapso3: Evaluacion[]; // Lista de evaluaciones del 3er Lapso
 }
 
-// --- Tipos de Gestión de Usuarios y Seguridad ---
-
-// Roles de Usuario
+// User Roles Enum (Strict values from Prisma)
 export enum UserRole {
-  Admin = 'Admin',
-  Director = 'Director',
-  ControlEstudios = 'Control de Estudios', // Control de Estudios
-  Teacher = 'Docente', // Rol Docente
+  DIRECTOR = 'DIRECTOR',
+  CONTROL_ESTUDIOS = 'CONTROL_ESTUDIOS',
+  DOCENTE = 'DOCENTE',
+  ADMIN = 'ADMIN'
 }
 
 // Interfaz de Usuario del Sistema

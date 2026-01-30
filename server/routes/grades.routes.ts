@@ -10,8 +10,9 @@ router.use(authenticateToken);
 router.get('/initial-data', DashboardController.getInitialData);
 
 // Grades
+// Grades
 router.post('/calificaciones/sync', GradesController.syncGrades);
-router.post('/calificaciones/lock-status', authorizeRole(['Admin', 'Control de Estudios', 'Director']), GradesController.setLockStatus);
+router.post('/calificaciones/lock-status', authorizeRole(['ADMIN', 'CONTROL_ESTUDIOS', 'DIRECTOR']), GradesController.setLockStatus);
 
 // Reports
 router.get('/reports/boletin', GradesController.getBoletin);

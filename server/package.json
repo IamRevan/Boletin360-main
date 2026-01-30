@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "stress": "node dist/tests/stress-test.js",
+    "seed": "node dist/prisma/seed.js",
     "dev": "npx nodemon index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
@@ -34,6 +36,11 @@
     "@types/pg": "^8.15.6",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "supertest": "^6.3.3",
+    "@types/jest": "^29.5.11",
+    "@types/supertest": "^6.0.2"
   }
 }

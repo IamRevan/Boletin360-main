@@ -90,7 +90,7 @@ export const MateriaModal: React.FC = () => {
               <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Docente a Cargo</label>
               <select name="id_docente" value={formData.id_docente || ''} onChange={handleNumericChange} className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5">
                 <option value="">Seleccione un docente...</option>
-                {teachers.filter(t => t.status === TeacherStatus.Activo).map(t => <option key={t.id} value={t.id}>{t.nombres} {t.apellidos}</option>)}
+                {teachers.filter(t => t.status === TeacherStatus.ACTIVO).map(t => <option key={t.id} value={t.id}>{t.nombres} {t.apellidos}</option>)}
               </select>
             </div>
 

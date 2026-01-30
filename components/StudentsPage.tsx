@@ -35,8 +35,8 @@ export const StudentsPage: React.FC = () => {
   }>({ isOpen: false, studentId: null, studentName: '' });
 
   if (!currentUser) return null;
-  const isTeacher = currentUser.role === UserRole.Teacher;
-  const isControlEstudios = currentUser.role === UserRole.ControlEstudios;
+  const isTeacher = currentUser.role === UserRole.DOCENTE;
+  const isControlEstudios = currentUser.role === UserRole.CONTROL_ESTUDIOS;
   const canManageStudents = !isTeacher; // Admin y ControlEstudios pueden gestionar
 
   // Handlers para abrir modales

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { UserRole } from '@/types';
+import { UserRole, StudentStatus } from '@/types';
 import { ArrowRightIcon, BookOpenIcon, UsersIcon } from '@/components/Icons';
 
 export default function StudentProfilePage() {
@@ -68,7 +68,7 @@ export default function StudentProfilePage() {
                     <div className="mt-4 md:mt-0 flex space-x-4">
                         <div className="text-right">
                             <p className="text-xs text-moon-text-secondary uppercase">Estado</p>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${profile.student.status === 'Activo' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${profile.student.status === StudentStatus.ACTIVO ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                 {profile.student.status}
                             </span>
                         </div>

@@ -10,9 +10,10 @@ import { Avatar } from './ui/Avatar';
 const StatusBadge: React.FC<{ status: StudentStatus }> = ({ status }) => {
   const baseClasses = 'px-3 py-1 text-xs font-semibold rounded-full inline-block';
   const statusClasses = {
-    [StudentStatus.Activo]: 'bg-moon-green/20 text-moon-green',
-    [StudentStatus.Inactivo]: 'bg-moon-orange/20 text-moon-orange',
-    [StudentStatus.Egresado]: 'bg-moon-blue/20 text-moon-blue',
+    [StudentStatus.ACTIVO]: 'bg-moon-green/20 text-moon-green',
+    [StudentStatus.INACTIVO]: 'bg-moon-orange/20 text-moon-orange',
+    [StudentStatus.RETIRADO]: 'bg-red-500/20 text-red-500',
+    [StudentStatus.GRADUADO]: 'bg-moon-blue/20 text-moon-blue',
   };
   return <span className={`${baseClasses} ${statusClasses[status]}`}>{status}</span>;
 };

@@ -6,6 +6,6 @@ import { AccessDeniedPage } from '@/components/AccessDeniedPage';
 
 export default function Page() {
     const { currentUser } = useAppState();
-    if (currentUser?.role !== UserRole.Admin) return <AccessDeniedPage />;
+    if (currentUser?.role !== UserRole.ADMIN) return <AccessDeniedPage />;
     return <SettingsPage />;
 }

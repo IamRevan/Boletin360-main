@@ -11,7 +11,7 @@ export const createTeacher = async (req: Request, res: Response) => {
 
     try {
         const teacher = await prisma.teacher.create({
-            data: { nacionalidad, cedula, nombres, apellidos, email, status }
+            data: { nacionalidad, cedula, nombres, apellidos, email, status: status as any }
         });
         res.json(teacher);
     } catch (err) {

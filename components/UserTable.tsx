@@ -9,10 +9,10 @@ import { Avatar } from './ui/Avatar';
 const RoleBadge: React.FC<{ role: UserRole }> = ({ role }) => {
   const baseClasses = 'px-3 py-1 text-xs font-semibold rounded-full inline-block';
   const roleClasses: Record<string, string> = {
-    [UserRole.Admin]: 'bg-moon-purple/20 text-moon-purple-light',
-    [UserRole.Director]: 'bg-moon-orange/20 text-moon-orange',
-    [UserRole.ControlEstudios]: 'bg-moon-green/20 text-moon-green',
-    [UserRole.Teacher]: 'bg-moon-blue/20 text-moon-blue',
+    [UserRole.ADMIN]: 'bg-moon-purple/20 text-moon-purple-light', // ADMIN
+    [UserRole.DIRECTOR]: 'bg-moon-orange/20 text-moon-orange',    // DIRECTOR (covers legacy Admin/Director)
+    [UserRole.CONTROL_ESTUDIOS]: 'bg-moon-green/20 text-moon-green',
+    [UserRole.DOCENTE]: 'bg-moon-blue/20 text-moon-blue',
   };
   return <span className={`${baseClasses} ${roleClasses[role] || 'bg-moon-border text-white'}`}>{role}</span>;
 };
