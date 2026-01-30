@@ -42,3 +42,4 @@ next-env.d.ts
 
 # PST Entregables (Project Documentation)
 /*.txt
+/checklist.json
