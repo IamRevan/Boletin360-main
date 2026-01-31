@@ -1,19 +1,13 @@
+import React from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ModalManager } from "@/components/ModalManager";
 
-// Configuración de fuentes de Google
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+// Fallback to system fonts to avoid build ETIMEDOUT when fetching Google Fonts in restricted environments
+const geistSansVar = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif";
+const geistMonoVar = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 // Metadatos de la aplicación (SEO, Título, etc.)
 export const metadata: Metadata = {
@@ -30,7 +24,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-moon-dark text-moon-text`}
+        className={`antialiased bg-moon-dark text-moon-text`}
+        style={{
+          // @ts-ignore
+          "--font-geist-sans": geistSansVar,
+          // @ts-ignore
+          "--font-geist-mono": geistMonoVar
+        } as React.CSSProperties}
         suppressHydrationWarning
       >
         {/* Providers maneja el Contexto Global (Estado) de la App */}

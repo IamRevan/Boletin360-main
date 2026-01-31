@@ -18,7 +18,11 @@ import auditRoutes from './routes/audit.routes';
 import { apiLimiter, authLimiter } from './middleware/rateLimit';
 import { errorHandler } from './middleware/errorHandler';
 
+import { createServer } from 'http';
+import { initSocket } from './socket';
+
 const app = express();
+const httpServer = createServer(app);
 const PORT = config.PORT;
 
 // Middlewares globales
@@ -41,8 +45,12 @@ app.use('/api', notificationRoutes);
 // Error handler (debe ser el último middleware)
 app.use(errorHandler);
 
+// Initialize Socket.io
+initSocket(httpServer);
+
 // Start Server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Database connected via Prisma`);
+    console.log(`Socket.io initialized`);
 });

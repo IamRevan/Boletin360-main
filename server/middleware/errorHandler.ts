@@ -15,10 +15,21 @@ export const errorHandler = (
     res: Response,
     next: NextFunction
 ) => {
-    // Log error for debugging
-    console.error(`[ERROR] ${new Date().toISOString()} - ${req.method} ${req.path}:`, err.message);
+    // Log error for debugging with more context
+    const timestamp = new Date().toISOString();
+    console.error(`[ERROR] ${timestamp} - ${req.method} ${req.path}`);
+
     if (process.env.NODE_ENV === 'development') {
-        console.error(err.stack);
+        if (Object.keys(req.body).length > 0) {
+            console.error('Request Body:', JSON.stringify(req.body, null, 2));
+        }
+        if (Object.keys(req.params).length > 0) {
+            console.error('Request Params:', req.params);
+        }
+        console.error('Error Message:', err.message);
+        console.error('Stack Trace:', err.stack);
+    } else {
+        console.error(`Error: ${err.message}`);
     }
 
     // Default error values

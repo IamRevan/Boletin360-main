@@ -122,9 +122,28 @@ export const StudentModal: React.FC = () => {
         dispatch({ type: ActionType.SAVE_STUDENT, payload: response.data });
       }
       onClose();
-    } catch (error) {
-      console.error("Failed to save student", error);
-      alert("Error al guardar estudiante. Verifique su conexión o intente iniciar sesión nuevamente.");
+    } catch (error: any) {
+      console.error("Failed to save student:", error);
+
+      let errorMessage = "Error al guardar estudiante.";
+      const responseData = error.response?.data;
+
+      if (responseData) {
+        // Case 1: Error is a direct string or contains localized message
+        if (typeof responseData.error === 'string') {
+          errorMessage = responseData.error;
+        }
+        // Case 2: Error is an array (likely Zod issues)
+        else if (Array.isArray(responseData.error)) {
+          errorMessage = `Error de validación: ${responseData.error.map((i: any) => i.message || JSON.stringify(i)).join(", ")}`;
+        }
+        // Case 3: Payload has 'issues' directly (alternative pattern)
+        else if (responseData.issues && Array.isArray(responseData.issues)) {
+          errorMessage = `Error de validación: ${responseData.issues.map((i: any) => i.message).join(", ")}`;
+        }
+      }
+
+      alert(`${errorMessage}\n\nVerifique los datos o su conexión e intente nuevamente.`);
     }
   };
 

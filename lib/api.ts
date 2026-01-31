@@ -18,6 +18,27 @@ axiosInstance.interceptors.request.use((config) => {
     return config;
 });
 
+// Interceptor para logs de respuesta y errores
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        // Log detallado de errores para depuración
+        const timestamp = new Date().toISOString();
+        const url = error.config?.url;
+        const method = error.config?.method?.toUpperCase();
+        const status = error.response?.status;
+        const message = error.response?.data?.error || error.message;
+
+        console.error(`[API ERROR] ${timestamp} | ${method} ${url} | Status: ${status} | Message: ${message}`);
+
+        if (error.response?.data?.issues) {
+            console.error('Validation Issues:', error.response.data.issues);
+        }
+
+        return Promise.reject(error);
+    }
+);
+
 // Objeto API principal con todos los endpoints del sistema
 export const api = {
     // Obtener datos iniciales de la aplicación

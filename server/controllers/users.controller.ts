@@ -13,27 +13,22 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     const { nombres, apellidos, email, password, role, teacherId } = validation.data;
     const userId = req.user?.id;
 
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await prisma.user.create({
-            data: {
-                nombres,
-                apellidos,
-                email,
-                password: hashedPassword,
-                role,
-                teacherId: teacherId || null
-            }
-        });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+        data: {
+            nombres,
+            apellidos,
+            email,
+            password: hashedPassword,
+            role,
+            teacherId: teacherId || null
+        }
+    });
 
-        await logAction(userId, 'CREATE_USER', `Created user ${user.email} with role ${user.role}`);
+    await logAction(userId, 'CREATE_USER', `Created user ${user.email} with role ${user.role}`);
 
-        const { password: _, ...userWithoutPassword } = user;
-        res.json({ ...userWithoutPassword, teacherId: user.teacherId });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al crear usuario' });
-    }
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ ...userWithoutPassword, teacherId: user.teacherId });
 };
 
 export const updateUser = async (req: AuthRequest, res: Response) => {
@@ -45,51 +40,41 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     const { nombres, apellidos, email, password, role, teacherId } = validation.data;
     const userId = req.user?.id;
 
-    try {
-        let updateData: any = {
-            nombres,
-            apellidos,
-            email,
-            role,
-            teacherId: teacherId || null
-        };
+    let updateData: any = {
+        nombres,
+        apellidos,
+        email,
+        role,
+        teacherId: teacherId || null
+    };
 
-        if (password) {
-            updateData.password = await bcrypt.hash(password, 10);
-        }
-
-        const user = await prisma.user.update({
-            where: { id: Number(id) },
-            data: updateData
-        });
-
-        await logAction(userId, 'UPDATE_USER', `Updated user ID ${id}`);
-
-        const { password: _, ...userWithoutPassword } = user;
-        res.json({ ...userWithoutPassword, teacherId: user.teacherId });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al actualizar usuario' });
+    if (password) {
+        updateData.password = await bcrypt.hash(password, 10);
     }
+
+    const user = await prisma.user.update({
+        where: { id: Number(id) },
+        data: updateData
+    });
+
+    await logAction(userId, 'UPDATE_USER', `Updated user ID ${id}`);
+
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ ...userWithoutPassword, teacherId: user.teacherId });
 };
 
 export const deleteUser = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user?.id;
 
-    try {
-        // Soft delete - set deletedAt instead of deleting
-        await prisma.user.update({
-            where: { id: Number(id) },
-            data: { deletedAt: new Date() }
-        });
+    // Soft delete - set deletedAt instead of deleting
+    await prisma.user.update({
+        where: { id: Number(id) },
+        data: { deletedAt: new Date() }
+    });
 
-        await logAction(userId, 'DELETE_USER', `Soft deleted user ID ${id}`);
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al eliminar usuario' });
-    }
+    await logAction(userId, 'DELETE_USER', `Soft deleted user ID ${id}`);
+    res.json({ success: true });
 };
 
 export const resetPassword = async (req: AuthRequest, res: Response) => {
@@ -97,17 +82,12 @@ export const resetPassword = async (req: AuthRequest, res: Response) => {
     const { newPassword } = req.body;
     const userId = req.user?.id;
 
-    try {
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        await prisma.user.update({
-            where: { id: Number(id) },
-            data: { password: hashedPassword }
-        });
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+        where: { id: Number(id) },
+        data: { password: hashedPassword }
+    });
 
-        await logAction(userId, 'RESET_PASSWORD', `Reset password for user ID ${id}`);
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al resetear contraseña' });
-    }
+    await logAction(userId, 'RESET_PASSWORD', `Reset password for user ID ${id}`);
+    res.json({ success: true });
 };

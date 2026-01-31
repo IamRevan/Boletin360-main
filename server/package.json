@@ -23,9 +23,9 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.16.3",
     "prisma": "5.22.0",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "socket.io": "^4.7.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -33,7 +33,6 @@
     "@types/exceljs": "^0.5.3",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/pg": "^8.15.6",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
@@ -42,5 +41,10 @@
     "supertest": "^6.3.3",
     "@types/jest": "^29.5.11",
     "@types/supertest": "^6.0.2"
+  },
+  "overrides": {
+    "glob": "^10.3.10",
+    "rimraf": "^5.0.5",
+    "inflight": "^1.0.6"
   }
 }

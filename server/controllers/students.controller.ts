@@ -12,36 +12,37 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
     const { nacionalidad, cedula, nombres, apellidos, email, genero, fecha_nacimiento, id_grado, id_seccion, status, lugar_nacimiento, direccion, telefono, nombre_representante, cedula_representante, telefono_representante, email_representante, observaciones } = validation.data;
     const userId = req.user?.id;
 
-    try {
-        const student = await prisma.student.create({
-            data: {
-                nacionalidad,
-                cedula,
-                nombres,
-                apellidos,
-                email,
-                genero,
-                fechaNacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
-                lugarNacimiento: lugar_nacimiento,
-                direccion,
-                telefono,
-                representante: nombre_representante,
-                cedulaR: cedula_representante,
-                telefonoR: telefono_representante,
-                emailR: email_representante,
-                observaciones,
-                idGrado: id_grado,
-                idSeccion: id_seccion,
-                status: status as any // Cast to StudentStatus enum
-            }
-        });
+    const student = await prisma.student.create({
+        data: {
+            nacionalidad,
+            cedula,
+            nombres,
+            apellidos,
+            email,
+            genero,
+            fechaNacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
+            lugarNacimiento: lugar_nacimiento,
+            direccion,
+            telefono,
+            representante: nombre_representante,
+            cedulaR: cedula_representante,
+            telefonoR: telefono_representante,
+            emailR: email_representante,
+            observaciones,
+            idGrado: id_grado,
+            idSeccion: id_seccion,
+            status: status as any // Cast to StudentStatus enum
+        }
+    });
 
-        await logAction(userId, 'CREATE_STUDENT', `Created student ${student.nombres} ${student.apellidos}`);
-        res.json(student);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al crear estudiante' });
-    }
+    await logAction(userId, 'CREATE_STUDENT', `Created student ${student.nombres} ${student.apellidos}`);
+
+    // Emit Socket Event
+    const { getIO } = require('../socket');
+    const io = getIO();
+    io.emit('data_updated', { type: 'STUDENT', id: student.id });
+
+    res.json(student);
 };
 
 export const updateStudent = async (req: AuthRequest, res: Response) => {
@@ -49,56 +50,58 @@ export const updateStudent = async (req: AuthRequest, res: Response) => {
     const { nacionalidad, cedula, nombres, apellidos, email, genero, fecha_nacimiento, id_grado, id_seccion, status, lugar_nacimiento, direccion, telefono, nombre_representante, cedula_representante, telefono_representante, email_representante, observaciones } = req.body;
     const userId = req.user?.id;
 
-    try {
-        const student = await prisma.student.update({
-            where: { id: Number(id) },
-            data: {
-                nacionalidad,
-                cedula,
-                nombres,
-                apellidos,
-                email,
-                genero,
-                fechaNacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
-                lugarNacimiento: lugar_nacimiento,
-                direccion,
-                telefono,
-                representante: nombre_representante,
-                cedulaR: cedula_representante,
-                telefonoR: telefono_representante,
-                emailR: email_representante,
-                observaciones,
-                idGrado: id_grado,
-                idSeccion: id_seccion,
-                status
-            }
-        });
+    const student = await prisma.student.update({
+        where: { id: Number(id) },
+        data: {
+            nacionalidad,
+            cedula,
+            nombres,
+            apellidos,
+            email,
+            genero,
+            fechaNacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
+            lugarNacimiento: lugar_nacimiento,
+            direccion,
+            telefono,
+            representante: nombre_representante,
+            cedulaR: cedula_representante,
+            telefonoR: telefono_representante,
+            emailR: email_representante,
+            observaciones,
+            idGrado: id_grado,
+            idSeccion: id_seccion,
+            status
+        }
+    });
 
-        await logAction(userId, 'UPDATE_STUDENT', `Updated student ID ${id}`);
-        res.json(student);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al actualizar estudiante' });
-    }
+    await logAction(userId, 'UPDATE_STUDENT', `Updated student ID ${id}`);
+
+    // Emit Socket Event
+    const { getIO } = require('../socket');
+    const io = getIO();
+    io.emit('data_updated', { type: 'STUDENT', id: student.id });
+
+    res.json(student);
 };
 
 export const deleteStudent = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user?.id;
 
-    try {
-        // Soft delete
-        await prisma.student.update({
-            where: { id: Number(id) },
-            data: { deletedAt: new Date() }
-        });
+    // Soft delete
+    await prisma.student.update({
+        where: { id: Number(id) },
+        data: { deletedAt: new Date() }
+    });
 
-        await logAction(userId, 'DELETE_STUDENT', `Deleted student ID ${id} (Soft Delete)`);
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al eliminar estudiante' });
-    }
+    await logAction(userId, 'DELETE_STUDENT', `Deleted student ID ${id} (Soft Delete)`);
+
+    // Emit Socket Event
+    const { getIO } = require('../socket');
+    const io = getIO();
+    io.emit('data_updated', { type: 'STUDENT', id: Number(id) });
+
+    res.json({ success: true });
 };
 
 export const promoteStudents = async (req: AuthRequest, res: Response) => {

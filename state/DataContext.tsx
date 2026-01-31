@@ -455,43 +455,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         fetchData();
 
-        // Polling logic
-        const intervalId = setInterval(async () => {
-            if (!currentUser) return;
-            try {
-                const [initialDataRes, announcementsRes, notificationsRes] = await Promise.all([
-                    api.getInitialData(),
-                    api.getAnnouncements(),
-                    api.getNotifications(currentUser.id)
-                ]);
+    }, [currentUser]); // Fetch on mount or when user changes
 
-                const newData = {
-                    ...initialDataRes.data,
-                    announcements: announcementsRes.data,
-                    notifications: notificationsRes.data
-                };
+    // WebSocket refresh listener
+    const { socket } = require('../components/SocketProvider').useSocket();
 
-                const currentState = stateRef.current; // Access latest state via ref
+    useEffect(() => {
+        if (!socket || !currentUser) return;
 
-                // Simple check to avoid unnecessary re-renders
-                const hasChanges =
-                    JSON.stringify(newData.students) !== JSON.stringify(currentState.students) ||
-                    JSON.stringify(newData.calificaciones) !== JSON.stringify(currentState.calificaciones) ||
-                    JSON.stringify(newData.materias) !== JSON.stringify(currentState.materias) ||
-                    JSON.stringify(newData.announcements) !== JSON.stringify(currentState.announcements) ||
-                    JSON.stringify(newData.notifications) !== JSON.stringify(currentState.notifications);
+        const handleUpdate = () => {
+            console.log("Data updated via WebSocket, refreshing...");
+            // Re-fetch everything (or we could be more specific)
+            const refreshData = async () => {
+                try {
+                    const [initialDataRes, announcementsRes, notificationsRes] = await Promise.all([
+                        api.getInitialData(),
+                        api.getAnnouncements(),
+                        api.getNotifications(currentUser.id)
+                    ]);
 
-                if (hasChanges) {
-                    // Only dispatch if something meaningful changed
-                    dispatch({ type: ActionType.SET_INITIAL_DATA, payload: newData });
+                    dispatch({
+                        type: ActionType.SET_INITIAL_DATA,
+                        payload: {
+                            ...initialDataRes.data,
+                            announcements: announcementsRes.data,
+                            notifications: notificationsRes.data
+                        }
+                    });
+                } catch (error) {
+                    console.error("WebSocket refresh failed", error);
                 }
-            } catch (error) {
-                console.error("Silent poll failed", error);
-            }
-        }, 10000); // 10 seconds
+            };
+            refreshData();
+        };
 
-        return () => clearInterval(intervalId);
-    }, [currentUser]); // Retry fetching if user logs in
+        socket.on('data_updated', handleUpdate);
+
+        return () => {
+            socket.off('data_updated', handleUpdate);
+        };
+    }, [socket, currentUser]);
 
     if (loading) {
         return (

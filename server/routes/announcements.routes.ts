@@ -1,63 +1,61 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { prisma } from '../db';
 import { z } from 'zod';
+import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
 // GET all announcements
-router.get('/announcements', async (req, res) => {
-    try {
-        const announcements = await prisma.announcement.findMany({
-            orderBy: { createdAt: 'desc' },
-            take: 50
-        });
-        res.json(announcements);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch announcements" });
-    }
-});
+router.get('/announcements', asyncHandler(async (req: Request, res: Response) => {
+    const announcements = await prisma.announcement.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 50
+    });
+    res.json(announcements);
+}));
 
 // POST create announcement (Admin only)
-router.post('/announcements', async (req, res) => {
-    // Assuming simple check or relying on frontend for now. 
-    // In strict impl, check req.user.role === 'Admin'
+router.post('/announcements', asyncHandler(async (req: Request, res: Response) => {
+    const schema = z.object({
+        title: z.string().min(1),
+        content: z.string().min(1),
+        type: z.enum(['info', 'warning', 'success']).default('info'),
+        createdBy: z.number()
+    });
+
+    const data = schema.parse(req.body);
+
+    const newAnnouncement = await prisma.announcement.create({
+        data: {
+            title: data.title,
+            content: data.content,
+            type: data.type,
+            createdBy: data.createdBy
+        }
+    });
+
+    // Emit Socket Event
     try {
-        const schema = z.object({
-            title: z.string().min(1),
-            content: z.string().min(1),
-            type: z.enum(['info', 'warning', 'success']).default('info'),
-            createdBy: z.number()
-        });
+        const { getIO } = require('../socket');
+        getIO().emit('data_updated', { type: 'ANNOUNCEMENT', id: newAnnouncement.id });
+    } catch (e) { }
 
-        const data = schema.parse(req.body);
-
-        const newAnnouncement = await prisma.announcement.create({
-            data: {
-                title: data.title,
-                content: data.content,
-                type: data.type,
-                createdBy: data.createdBy
-            }
-        });
-
-        // OPTIONAL: Also create notifications for all users? 
-        // For now, announcements are global, notifications are personal.
-
-        res.json(newAnnouncement);
-    } catch (error) {
-        res.status(400).json({ error: "Invalid data" });
-    }
-});
+    res.json(newAnnouncement);
+}));
 
 // DELETE announcement
-router.delete('/announcements/:id', async (req, res) => {
+router.delete('/announcements/:id', asyncHandler(async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    await prisma.announcement.delete({ where: { id } });
+
+    // Emit Socket Event
     try {
-        const id = parseInt(req.params.id);
-        await prisma.announcement.delete({ where: { id } });
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to delete" });
-    }
-});
+        const { getIO } = require('../socket');
+        getIO().emit('data_updated', { type: 'ANNOUNCEMENT', id });
+    } catch (e) { }
+
+    res.json({ success: true });
+}));
 
 export default router;
+

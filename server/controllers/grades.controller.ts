@@ -20,130 +20,122 @@ export const syncGrades = async (req: AuthRequest, res: Response) => {
     const { studentId, materiaId, añoId, lapso1, lapso2, lapso3 } = validation.data;
     const userRole = req.user?.role;
 
-    try {
-        // Find existing Calificacion or Create it
-        let calificacion = await prisma.calificacion.findUnique({
-            where: {
-                studentId_materiaId_anoEscolarId: {
-                    studentId,
-                    materiaId,
-                    anoEscolarId: añoId
-                }
+    // Find existing Calificacion or Create it
+    let calificacion = await prisma.calificacion.findUnique({
+        where: {
+            studentId_materiaId_anoEscolarId: {
+                studentId,
+                materiaId,
+                anoEscolarId: añoId
+            }
+        }
+    });
+
+    if (calificacion) {
+        // Check lock status
+        if (calificacion.isLocked && ![UserRole.ADMIN, UserRole.CONTROL_ESTUDIOS, UserRole.DIRECTOR].includes(userRole as any)) {
+            return res.status(403).json({ error: 'Calificaciones bloqueadas/aprobadas. No se pueden editar.' });
+        }
+    } else {
+        // Create new container
+        calificacion = await prisma.calificacion.create({
+            data: {
+                studentId,
+                materiaId,
+                anoEscolarId: añoId,
+                isLocked: false
             }
         });
-
-        if (calificacion) {
-            // Check lock status
-            if (calificacion.isLocked && ![UserRole.ADMIN, UserRole.CONTROL_ESTUDIOS, UserRole.DIRECTOR].includes(userRole as any)) {
-                return res.status(403).json({ error: 'Calificaciones bloqueadas/aprobadas. No se pueden editar.' });
-            }
-        } else {
-            // Create new container
-            calificacion = await prisma.calificacion.create({
-                data: {
-                    studentId,
-                    materiaId,
-                    anoEscolarId: añoId,
-                    isLocked: false
-                }
-            });
-        }
-
-        const cid = calificacion.id;
-
-        // Helper to process evaluations (Sync: Delete old for lapso, insert new)
-        const processLapso = async (lapsoNum: number, items: any[]) => {
-            if (!items) return;
-            // Transactional replacement for safety
-            await prisma.$transaction([
-                prisma.evaluation.deleteMany({
-                    where: { calificacionId: cid, lapso: lapsoNum }
-                }),
-                prisma.evaluation.createMany({
-                    data: items.map(item => ({
-                        calificacionId: cid,
-                        lapso: lapsoNum,
-                        descripcion: item.nombre,
-                        nota: item.nota,
-                        ponderacion: item.ponderacion
-                    }))
-                })
-            ]);
-        };
-
-        // Execute sequentially or parallel (Parallel is fine here)
-        await Promise.all([
-            processLapso(1, lapso1),
-            processLapso(2, lapso2),
-            processLapso(3, lapso3)
-        ]);
-
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al sincronizar calificaciones' });
     }
+
+    const cid = calificacion.id;
+
+    // Helper to process evaluations (Sync: Delete old for lapso, insert new)
+    const processLapso = async (lapsoNum: number, items: any[]) => {
+        if (!items) return;
+        // Transactional replacement for safety
+        await prisma.$transaction([
+            prisma.evaluation.deleteMany({
+                where: { calificacionId: cid, lapso: lapsoNum }
+            }),
+            prisma.evaluation.createMany({
+                data: items.map(item => ({
+                    calificacionId: cid,
+                    lapso: lapsoNum,
+                    descripcion: item.nombre,
+                    nota: item.nota,
+                    ponderacion: item.ponderacion
+                }))
+            })
+        ]);
+    };
+
+    // Execute sequentially or parallel (Parallel is fine here)
+    await Promise.all([
+        processLapso(1, lapso1),
+        processLapso(2, lapso2),
+        processLapso(3, lapso3)
+    ]);
+
+    // Emit Socket Event
+    try {
+        const { getIO } = require('../socket');
+        getIO().emit('data_updated', { type: 'GRADE', studentId, materiaId });
+    } catch (e) { }
+
+    res.json({ success: true });
 };
 
 export const setLockStatus = async (req: Request, res: Response) => {
     const { studentId, materiaId, añoId, isLocked } = req.body;
-    try {
-        await prisma.calificacion.update({
-            where: {
-                studentId_materiaId_anoEscolarId: { studentId, materiaId, anoEscolarId: añoId }
-            },
-            data: { isLocked }
-        });
-        res.json({ success: true, message: `Calificaciones ${isLocked ? 'bloqueadas' : 'desbloqueadas'}` });
-    } catch (err) {
-        res.status(500).json({ error: 'Error al cambiar estado de bloqueo' });
-    }
+    await prisma.calificacion.update({
+        where: {
+            studentId_materiaId_anoEscolarId: { studentId, materiaId, anoEscolarId: añoId }
+        },
+        data: { isLocked }
+    });
+    res.json({ success: true, message: `Calificaciones ${isLocked ? 'bloqueadas' : 'desbloqueadas'}` });
 };
 
 export const getBoletin = async (req: Request, res: Response) => {
     const { studentId, anoEscolarId } = req.query;
     if (!studentId || !anoEscolarId) return res.status(400).json({ error: 'Faltan parámetros' });
 
-    try {
-        const student = await prisma.student.findUnique({ where: { id: Number(studentId) } });
-        const anoEscolar = await prisma.anosEscolares.findUnique({ where: { id: Number(anoEscolarId) } });
+    const student = await prisma.student.findUnique({ where: { id: Number(studentId) } });
+    const anoEscolar = await prisma.anosEscolares.findUnique({ where: { id: Number(anoEscolarId) } });
 
-        if (!student) return res.status(404).json({ error: 'Estudiante no encontrado' });
+    if (!student) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
-        // Query Aggregated Grades
-        const boletin = await prisma.$queryRaw`
-            SELECT 
-                m.id as materia_id,
-                m.nombre_materia,
-                c.is_locked,
-                
-                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
-                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
-                (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3,
+    // Query Aggregated Grades
+    const boletin = await prisma.$queryRaw`
+        SELECT 
+            m.id as materia_id,
+            m.nombre_materia,
+            c.is_locked,
+            
+            (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
+            (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
+            (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3,
 
-                g.nombre_grado,
-                s.nombre_seccion,
-                t.nombres as docente_nombres, t.apellidos as docente_apellidos
-            FROM calificaciones c
-            JOIN materias m ON c.materia_id = m.id
-            JOIN grados g ON m.id_grado = g.id_grado
-            LEFT JOIN secciones s ON m.id_seccion = s.id_seccion
-            LEFT JOIN teachers t ON m.id_docente = t.id
-            WHERE c.student_id = ${Number(studentId)} AND c.ano_escolar_id = ${Number(anoEscolarId)}
-        `;
+            g.nombre_grado,
+            s.nombre_seccion,
+            t.nombres as docente_nombres, t.apellidos as docente_apellidos
+        FROM calificaciones c
+        JOIN materias m ON c.materia_id = m.id
+        JOIN grados g ON m.id_grado = g.id_grado
+        LEFT JOIN secciones s ON m.id_seccion = s.id_seccion
+        LEFT JOIN teachers t ON m.id_docente = t.id
+        WHERE c.student_id = ${Number(studentId)} AND c.ano_escolar_id = ${Number(anoEscolarId)}
+    `;
 
-        res.json({
-            student: {
-                ...student,
-                fecha_nacimiento: student.fechaNacimiento ? student.fechaNacimiento.toISOString().split('T')[0] : null
-            },
-            anoEscolar,
-            boletin
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error al generar boletín' });
-    }
+    res.json({
+        student: {
+            ...student,
+            fecha_nacimiento: student.fechaNacimiento ? student.fechaNacimiento.toISOString().split('T')[0] : null
+        },
+        anoEscolar,
+        boletin
+    });
 };
 
 export const getActa = async (req: Request, res: Response) => {
