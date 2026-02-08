@@ -26,10 +26,8 @@ services:
     restart: always
     ports:
       - "3001:3001"
-    environment:
-      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-boletin360}
-      - JWT_SECRET=${JWT_SECRET:-secret_super_seguro_360}
-      - PORT=3001
+    env_file:
+      - ./server/.env.docker
     volumes:
       - ./server/prisma:/app/prisma
     depends_on:
@@ -68,6 +66,7 @@ services:
 
 volumes:
   postgres_data:
+
 
 networks:
   app-network:
