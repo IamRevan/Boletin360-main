@@ -1,4 +1,22 @@
 import axios from 'axios';
+import { z } from 'zod';
+import {
+    LoginSchema,
+    StudentSchema,
+    TeacherSchema,
+    GradeSyncSchema,
+    CreateUserSchema,
+    UpdateUserSchema
+} from '../server/schemas'; // Imporing shared schemas
+
+// Infer types from Zod Schemas
+export type LoginData = z.infer<typeof LoginSchema>;
+export type StudentData = z.infer<typeof StudentSchema>;
+export type TeacherData = z.infer<typeof TeacherSchema>;
+export type GradeSyncData = z.infer<typeof GradeSyncSchema>;
+export type CreateUserData = z.infer<typeof CreateUserSchema>;
+export type UpdateUserData = z.infer<typeof UpdateUserSchema>;
+
 
 const API_URL = 'http://localhost:3001/api';
 
@@ -49,7 +67,7 @@ export const api = {
     post: (url: string, data?: any, config?: any) => axiosInstance.post(url, data, config),
 
     // Autenticación
-    login: async (credentials: any) => {
+    login: async (credentials: LoginData) => {
         const response = await axiosInstance.post('/login', credentials);
         if (response.data.token && typeof window !== 'undefined') {
             localStorage.setItem('token', response.data.token);
@@ -63,27 +81,29 @@ export const api = {
     },
 
     // Gestión de Estudiantes
-    createStudent: (data: any) => axiosInstance.post('/students', data),
-    updateStudent: (id: number, data: any) => axiosInstance.put(`/students/${id}`, data),
+    createStudent: (data: StudentData) => axiosInstance.post('/students', data),
+    updateStudent: (id: number, data: StudentData) => axiosInstance.put(`/students/${id}`, data),
     deleteStudent: (id: number) => axiosInstance.delete(`/students/${id}`),
 
     // Gestión de Docentes
-    createTeacher: (data: any) => axiosInstance.post('/teachers', data),
-    updateTeacher: (id: number, data: any) => axiosInstance.put(`/teachers/${id}`, data),
+    createTeacher: (data: TeacherData) => axiosInstance.post('/teachers', data),
+    updateTeacher: (id: number, data: TeacherData) => axiosInstance.put(`/teachers/${id}`, data),
     deleteTeacher: (id: number) => axiosInstance.delete(`/teachers/${id}`),
 
     // Gestión de Materias
-    createMateria: (data: any) => axiosInstance.post('/materias', data),
+    createMateria: (data: any) => axiosInstance.post('/materias', data), // Placeholder for MateriaSchema
     updateMateria: (id: number, data: any) => axiosInstance.put(`/materias/${id}`, data),
     deleteMateria: (id: number) => axiosInstance.delete(`/materias/${id}`),
 
     // Gestión de Grados
     createGrado: (data: any) => axiosInstance.post('/grados', data),
+    createBatchGrados: (data: any) => axiosInstance.post('/grados/batch', data),
     updateGrado: (id: number, data: any) => axiosInstance.put(`/grados/${id}`, data),
     deleteGrado: (id: number) => axiosInstance.delete(`/grados/${id}`),
 
     // Gestión de Secciones
     createSeccion: (data: any) => axiosInstance.post('/secciones', data),
+    createBatchSecciones: (data: any) => axiosInstance.post('/secciones/batch', data),
     updateSeccion: (id: number, data: any) => axiosInstance.put(`/secciones/${id}`, data),
     deleteSeccion: (id: number) => axiosInstance.delete(`/secciones/${id}`),
 
@@ -93,8 +113,8 @@ export const api = {
     deleteSchoolYear: (id: number) => axiosInstance.delete(`/schoolyears/${id}`),
 
     // Gestión de Usuarios (Admin)
-    createUser: (data: any) => axiosInstance.post('/users', data),
-    updateUser: (id: number, data: any) => axiosInstance.put(`/users/${id}`, data),
+    createUser: (data: CreateUserData) => axiosInstance.post('/users', data),
+    updateUser: (id: number, data: UpdateUserData) => axiosInstance.put(`/users/${id}`, data),
     deleteUser: (id: number) => axiosInstance.delete(`/users/${id}`),
     resetPassword: (id: number, newPassword: string) => axiosInstance.post(`/users/${id}/reset-password`, { newPassword }),
 
@@ -110,5 +130,5 @@ export const api = {
     deleteNotification: (id: number) => axiosInstance.delete(`/notifications/${id}`),
 
     // Gestión de Calificaciones
-    syncGrades: (data: any) => axiosInstance.post('/calificaciones/sync', data),
+    syncGrades: (data: GradeSyncData) => axiosInstance.post('/calificaciones/sync', data),
 };

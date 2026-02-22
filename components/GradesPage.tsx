@@ -37,8 +37,8 @@ export const GradesPage: React.FC = () => {
   useEffect(() => {
     if (isTeacher && materias.length > 0 && !selectedMateria) {
       const firstMateria = materias[0];
-      setSelectedGrado(firstMateria.id_grado);
-      setSelectedSeccion(firstMateria.id_seccion);
+      setSelectedGrado(firstMateria.idGrado);
+      setSelectedSeccion(firstMateria.idSeccion);
       setSelectedMateria(firstMateria.id);
     }
   }, [isTeacher, materias, selectedMateria]);
@@ -46,29 +46,29 @@ export const GradesPage: React.FC = () => {
 
   const onAddEvaluation = () => {
     const studentIds = filteredStudents.map(s => s.id);
-    const modalInfo = { studentIds, materiaId: selectedMateria!, añoId: selectedAño!, lapso: activeLapso };
+    const modalInfo = { studentIds, materiaId: selectedMateria!, anoEscolarId: selectedAño!, lapso: activeLapso };
     dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddEvaluation, data: modalInfo } });
   };
 
   const availableGrados = useMemo(() => {
-    const gradeIds = [...new Set(materias.map(m => m.id_grado))];
-    return grados.filter(g => gradeIds.includes(g.id_grado));
+    const gradeIds = [...new Set(materias.map(m => m.idGrado))];
+    return grados.filter(g => gradeIds.includes(g.id));
   }, [grados, materias]);
 
   const availableSecciones = useMemo(() => {
     if (!selectedGrado) return [];
-    const sectionIds = [...new Set(materias.filter(m => m.id_grado === selectedGrado).map(m => m.id_seccion))];
-    return secciones.filter(s => sectionIds.includes(s.id_seccion));
+    const sectionIds = [...new Set(materias.filter(m => m.idGrado === selectedGrado).map(m => m.idSeccion))];
+    return secciones.filter(s => sectionIds.includes(s.id));
   }, [secciones, materias, selectedGrado]);
 
   const filteredMateriasForDropdown = useMemo(() => {
     if (!selectedGrado || !selectedSeccion) return [];
-    return materias.filter(m => m.id_grado === selectedGrado && m.id_seccion === selectedSeccion);
+    return materias.filter(m => m.idGrado === selectedGrado && m.idSeccion === selectedSeccion);
   }, [materias, selectedGrado, selectedSeccion]);
 
   const filteredStudents = useMemo(() => {
     if (!selectedGrado || !selectedSeccion) return [];
-    return students.filter(s => s.id_grado === selectedGrado && s.id_seccion === selectedSeccion);
+    return students.filter(s => s.idGrado === selectedGrado && s.idSeccion === selectedSeccion);
   }, [students, selectedGrado, selectedSeccion]);
 
   const handleGradoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -106,21 +106,21 @@ export const GradesPage: React.FC = () => {
             <label className="block text-sm font-medium text-moon-text-secondary mb-2">Grado</label>
             <select value={selectedGrado || ''} disabled={!selectedAño} onChange={handleGradoChange} className="w-full bg-moon-nav border border-moon-border rounded-lg py-2 px-3 text-moon-text focus:outline-none focus:ring-2 focus:ring-moon-purple-light focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
               <option value="">Seleccione...</option>
-              {(isTeacher ? availableGrados : grados).map(g => <option key={g.id_grado} value={g.id_grado}>{g.nombre_grado}</option>)}
+              {(isTeacher ? availableGrados : grados).map(g => <option key={g.id} value={g.id}>{g.nombreGrado}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-moon-text-secondary mb-2">Sección</label>
             <select value={selectedSeccion || ''} disabled={!selectedGrado} onChange={handleSeccionChange} className="w-full bg-moon-nav border border-moon-border rounded-lg py-2 px-3 text-moon-text focus:outline-none focus:ring-2 focus:ring-moon-purple-light focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
               <option value="">Seleccione...</option>
-              {(isTeacher ? availableSecciones : secciones).map(s => <option key={s.id_seccion} value={s.id_seccion}>{s.nombre_seccion}</option>)}
+              {(isTeacher ? availableSecciones : secciones).map(s => <option key={s.id} value={s.id}>{s.nombreSeccion}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-moon-text-secondary mb-2">Materia</label>
             <select disabled={!selectedGrado || !selectedSeccion} onChange={(e) => setSelectedMateria(e.target.value ? parseInt(e.target.value, 10) : null)} value={selectedMateria || ''} className="w-full bg-moon-nav border border-moon-border rounded-lg py-2 px-3 text-moon-text focus:outline-none focus:ring-2 focus:ring-moon-purple-light focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
               <option value="">Seleccione...</option>
-              {filteredMateriasForDropdown.map(m => <option key={m.id} value={m.id}>{m.nombre_materia}</option>)}
+              {filteredMateriasForDropdown.map(m => <option key={m.id} value={m.id}>{m.nombreMateria}</option>)}
             </select>
           </div>
         </div>

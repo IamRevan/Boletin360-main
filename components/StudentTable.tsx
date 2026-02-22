@@ -78,9 +78,9 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, grados, se
     return <TableSkeleton rows={8} columns={5} />;
   }
 
-  const getGradoSeccion = (id_grado: number | null, id_seccion: number | null) => {
-    const grado = grados.find(g => g.id_grado === id_grado)?.nombre_grado || '';
-    const seccion = secciones.find(s => s.id_seccion === id_seccion)?.nombre_seccion || '';
+  const getGradoSeccion = (idGrado: number | null, idSeccion: number | null) => {
+    const grado = grados.find(g => g.id === idGrado)?.nombreGrado || '';
+    const seccion = secciones.find(s => s.id === idSeccion)?.nombreSeccion || '';
     if (grado && seccion) return `${grado} "${seccion}"`;
     return 'Sin asignar';
   };
@@ -120,7 +120,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, grados, se
                     </div>
                   </td>
                   <td className="px-6 py-4">{student.nacionalidad}-{student.cedula}</td>
-                  <td className="px-6 py-4">{getGradoSeccion(student.id_grado, student.id_seccion)}</td>
+                  <td className="px-6 py-4">{getGradoSeccion(student.idGrado, student.idSeccion)}</td>
                   <td className="px-6 py-4">
                     <StatusBadge status={student.status} />
                   </td>

@@ -103,10 +103,10 @@ export default function ReportsPage() {
     };
 
     // Helper para nota de lapso (Boletín)
-    const getLapsoNota = (lapso: any[]) => {
-        if (!lapso || lapso.length === 0) return '';
-        const sum = lapso.reduce((acc, curr) => acc + Number(curr.nota), 0);
-        return (sum / lapso.length).toFixed(0);
+    const getLapsoNota = (lapso: any) => {
+        if (typeof lapso === 'number') return lapso;
+        if (!lapso || !Array.isArray(lapso) || lapso.length === 0) return 0;
+        return lapso.reduce((acc: number, curr: any) => acc + Number(curr.nota), 0) / lapso.length;
     };
 
     const getDefinitiva = (materia: any) => {
@@ -178,12 +178,12 @@ export default function ReportsPage() {
                                     placeholder="Buscar por nombre o cédula..."
                                     className="bg-transparent border-none focus:outline-none text-moon-text ml-2 w-full"
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e: any) => setSearchTerm(e.target.value)}
                                 />
                             </div>
                             {searchTerm && filteredStudents.length > 0 && !selectedStudentId && (
                                 <div className="absolute z-10 w-full bg-moon-component border border-moon-border mt-1 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                                    {filteredStudents.map(student => (
+                                    {filteredStudents.map((student: any) => (
                                         <button
                                             key={student.id}
                                             onClick={() => {
@@ -212,11 +212,11 @@ export default function ReportsPage() {
                                 <select
                                     className="w-full bg-moon-bg border border-moon-border text-moon-text rounded-lg px-3 py-2 focus:outline-none focus:border-moon-primary"
                                     value={selectedGradoId || ''}
-                                    onChange={(e) => setSelectedGradoId(Number(e.target.value))}
+                                    onChange={(e: any) => setSelectedGradoId(Number(e.target.value))}
                                 >
                                     <option value="" style={{ backgroundColor: '#1a1d2d' }}>Seleccionar...</option>
                                     {grados.map(g => (
-                                        <option key={g.id_grado} value={g.id_grado} style={{ backgroundColor: '#1a1d2d' }}>{g.nombre_grado}</option>
+                                        <option key={g.id} value={g.id} style={{ backgroundColor: '#1a1d2d' }}>{g.nombreGrado}</option>
                                     ))}
                                 </select>
                             </div>
@@ -225,12 +225,19 @@ export default function ReportsPage() {
                                 <select
                                     className="w-full bg-moon-bg border border-moon-border text-moon-text rounded-lg px-3 py-2 focus:outline-none focus:border-moon-primary"
                                     value={selectedSeccionId || ''}
-                                    onChange={(e) => setSelectedSeccionId(Number(e.target.value))}
+                                    onChange={(e: any) => setSelectedSeccionId(Number(e.target.value))}
                                 >
                                     <option value="" style={{ backgroundColor: '#1a1d2d' }}>Seleccionar...</option>
-                                    {secciones.map(s => (
-                                        <option key={s.id_seccion} value={s.id_seccion} style={{ backgroundColor: '#1a1d2d' }}>{s.nombre_seccion}</option>
-                                    ))}
+                                    {secciones
+                                        .filter(s => !selectedGradoId || s.idGrado === selectedGradoId)
+                                        .map(s => {
+                                            const grado = grados.find(g => g.id === s.idGrado);
+                                            return (
+                                                <option key={s.id} value={s.id} style={{ backgroundColor: '#1a1d2d' }}>
+                                                    {grado ? `${grado.nombreGrado} "${s.nombreSeccion}"` : s.nombreSeccion}
+                                                </option>
+                                            );
+                                        })}
                                 </select>
                             </div>
                         </>
@@ -242,7 +249,7 @@ export default function ReportsPage() {
                         <select
                             className="w-full bg-moon-bg border border-moon-border text-moon-text rounded-lg px-3 py-2 focus:outline-none focus:border-moon-primary"
                             value={selectedAnoId || ''}
-                            onChange={(e) => setSelectedAnoId(Number(e.target.value))}
+                            onChange={(e: any) => setSelectedAnoId(Number(e.target.value))}
                         >
                             <option value="" style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>Seleccione un año...</option>
                             {añosEscolares.map(ano => (
@@ -320,9 +327,9 @@ export default function ReportsPage() {
                                 <div className="mb-4">
                                     <div className="flex justify-end pr-8 mb-1">
                                         <div className="text-right">
-                                            <div className="font-bold text-[10px] border-b border-black inline-block">{reportData.boletin[0]?.nombre_grado || '1er'} Año AÑO</div>
+                                            <div className="font-bold text-[10px] border-b border-black inline-block">{reportData.boletin[0]?.nombreGrado || '1er'} Año AÑO</div>
                                             <br />
-                                            <div className="font-bold text-[10px] border-b border-black inline-block">SECCION: "{reportData.boletin[0]?.nombre_seccion || 'A'}"</div>
+                                            <div className="font-bold text-[10px] border-b border-black inline-block">SECCION: "{reportData.boletin[0]?.nombreSeccion || 'A'}"</div>
                                         </div>
                                     </div>
                                     <div className="text-center border-t border-black pt-1 mx-4">
@@ -362,7 +369,7 @@ export default function ReportsPage() {
                                             {/* Filas de materias reales */}
                                             {reportData.boletin.map((materia: any, index: number) => (
                                                 <tr key={index}>
-                                                    <td className="border-2 border-black px-2 py-1.5 text-left">{materia.nombre_materia}</td>
+                                                    <td className="border-2 border-black px-2 py-1.5 text-left">{materia.nombreMateria}</td>
                                                     <td className="border-2 border-black px-2 py-1.5 text-center text-sm">{getLapsoNota(materia.lapso1)}</td>
                                                     <td className="border-2 border-black px-2 py-1.5 text-center text-sm">{getLapsoNota(materia.lapso2)}</td>
                                                     <td className="border-2 border-black px-2 py-1.5 text-center text-sm">{getLapsoNota(materia.lapso3)}</td>
@@ -371,7 +378,7 @@ export default function ReportsPage() {
                                             ))}
 
                                             {/* Relleno para mantener altura constante (ej. 13 filas total incluyendo promedio) */}
-                                            {[...Array(Math.max(0, 11 - reportData.boletin.length))].map((_, i) => (
+                                            {[...Array(Math.max(0, 11 - reportData.boletin.length))].map((_: any, i: number) => (
                                                 <tr key={`fill-${i}`}>
                                                     <td className="border-2 border-black px-2 py-1.5 text-left text-transparent">.</td>
                                                     <td className="border-2 border-black px-2 py-1.5"></td>

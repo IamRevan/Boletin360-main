@@ -1,11 +1,17 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { type Seccion } from '../types';
+import { type Seccion, type Grado } from '../types';
 import { MoreVerticalIcon, EditIcon, Trash2Icon, UsersIcon } from './Icons';
 
 // Acciones por fila (Dropdown)
-const TableRowActions: React.FC<{ seccion: Seccion; onEdit: (seccion: Seccion) => void; onDelete: (seccionId: number) => void; }> = ({ seccion, onEdit, onDelete }) => {
+interface TableRowActionsProps {
+  seccion: Seccion;
+  onEdit: (seccion: Seccion) => void;
+  onDelete: (seccionId: number) => void;
+}
+
+const TableRowActions = ({ seccion, onEdit, onDelete }: TableRowActionsProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -33,7 +39,7 @@ const TableRowActions: React.FC<{ seccion: Seccion; onEdit: (seccion: Seccion) =
               <EditIcon />
               <span className="ml-3">Editar</span>
             </button>
-            <button onClick={() => { onDelete(seccion.id_seccion); setIsOpen(false); }} className="w-full flex items-center px-3 py-2 text-sm text-red-400 rounded-lg hover:bg-red-500/20">
+            <button onClick={() => { onDelete(seccion.id); setIsOpen(false); }} className="w-full flex items-center px-3 py-2 text-sm text-red-400 rounded-lg hover:bg-red-500/20">
               <Trash2Icon />
               <span className="ml-3">Eliminar</span>
             </button>
@@ -46,12 +52,13 @@ const TableRowActions: React.FC<{ seccion: Seccion; onEdit: (seccion: Seccion) =
 
 interface SeccionesTableProps {
   secciones: Seccion[];
+  grados: Grado[];
   onEdit: (seccion: Seccion) => void;
   onDelete: (seccionId: number) => void;
 }
 
 // Tabla para lista de Secciones
-export const SeccionesTable: React.FC<SeccionesTableProps> = ({ secciones, onEdit, onDelete }) => {
+export const SeccionesTable = ({ secciones, grados, onEdit, onDelete }: SeccionesTableProps) => {
   return (
     <div className="bg-moon-component rounded-xl border border-moon-border overflow-hidden">
       <div className="p-6">
@@ -73,13 +80,16 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({ secciones, onEdi
               </tr>
             ) : (
               secciones.map((seccion) => (
-                <tr key={seccion.id_seccion} className="bg-moon-component border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
+                <tr key={seccion.id} className="bg-moon-component border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-9 h-9 rounded-full bg-moon-purple/20 flex items-center justify-center mr-3">
                         <UsersIcon />
                       </div>
-                      {seccion.nombre_seccion}
+                      {(() => {
+                        const grado = grados.find(g => g.id === seccion.idGrado);
+                        return grado ? `${grado.nombreGrado} "${seccion.nombreSeccion}"` : seccion.nombreSeccion;
+                      })()}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">

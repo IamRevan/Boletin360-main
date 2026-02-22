@@ -6,23 +6,24 @@ interface ResumenReportProps {
     logoUrl?: string; // Optional custom logo
 }
 
-export const ResumenReport: React.FC<ResumenReportProps> = ({ data }) => {
+export const ResumenReport: React.FC<ResumenReportProps> = ({ data }: ResumenReportProps) => {
     const { grado, seccion, anoEscolar, acta } = data;
 
     // Obtener lista única de materias para las columnas
     const materiasMap = new Map();
     acta.forEach((student: any) => {
         student.materias.forEach((m: any) => {
-            materiasMap.set(m.materia_id, m.nombre_materia);
+            materiasMap.set(m.materiaId, m.nombreMateria);
         });
     });
     const materiasIds = Array.from(materiasMap.keys()).sort();
 
     // Helper para calcular definitiva
     const getDefinitiva = (materia: any) => {
-        const getLapsoNota = (lapso: any[]) => {
-            if (!lapso || lapso.length === 0) return 0;
-            return lapso.reduce((acc, curr) => acc + Number(curr.nota), 0) / lapso.length;
+        const getLapsoNota = (lapso: any) => {
+            if (typeof lapso === 'number') return lapso;
+            if (!lapso || !Array.isArray(lapso) || lapso.length === 0) return 0;
+            return lapso.reduce((acc: number, curr: any) => acc + Number(curr.nota), 0) / lapso.length;
         };
         const def = (getLapsoNota(materia.lapso1) + getLapsoNota(materia.lapso2) + getLapsoNota(materia.lapso3)) / 3;
         return def.toFixed(0);
@@ -48,7 +49,7 @@ export const ResumenReport: React.FC<ResumenReportProps> = ({ data }) => {
 
             <div className="text-center mb-4 border-b-2 border-black pb-1">
                 <h2 className="text-lg font-bold">AÑO ESCOLAR: {anoEscolar.nombre}</h2>
-                <h3 className="text-md font-semibold">GRADO: {grado.nombre_grado}  SECCIÓN: "{seccion.nombre_seccion}"</h3>
+                <h3 className="text-md font-semibold">GRADO: {grado.nombreGrado}  SECCIÓN: "{seccion.nombreSeccion}"</h3>
             </div>
 
             {/* Tabla Sábana */}
@@ -77,7 +78,7 @@ export const ResumenReport: React.FC<ResumenReportProps> = ({ data }) => {
 
                         student.materias.forEach((m: any) => {
                             const def = getDefinitiva(m);
-                            studentGrades.set(m.materia_id, def);
+                            studentGrades.set(m.materiaId, def);
                             totalDef += Number(def);
                             countDef++;
                         });
@@ -85,7 +86,7 @@ export const ResumenReport: React.FC<ResumenReportProps> = ({ data }) => {
                         const promedioGeneral = countDef > 0 ? (totalDef / countDef).toFixed(0) : '';
 
                         return (
-                            <tr key={student.student_id}>
+                            <tr key={student.studentId}>
                                 <td className="border border-black px-1 py-1 text-center">{index + 1}</td>
                                 <td className="border border-black px-1 py-1 text-center">{student.cedula}</td>
                                 <td className="border border-black px-1 py-1 font-bold">{student.apellidos}, {student.nombres}</td>

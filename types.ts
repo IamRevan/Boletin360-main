@@ -9,14 +9,16 @@ export enum StudentStatus {
 
 // Interfaz para Grados (e.g., 1er Año, 2do Año)
 export interface Grado {
-  id_grado: number;
-  nombre_grado: string;
+  id: number;
+  nombreGrado: string;
+  anoEscolarId: number;
 }
 
 // Interfaz para Secciones (e.g., A, B, C)
 export interface Seccion {
-  id_seccion: number;
-  nombre_seccion: string;
+  id: number;
+  nombreSeccion: string;
+  idGrado: number; // Linked class
 }
 
 // Interfaz principal de Estudiante
@@ -28,9 +30,9 @@ export interface Student {
   apellidos: string;
   email: string;
   genero: 'F' | 'M';
-  fecha_nacimiento: string | null;
-  id_grado: number | null; // Relación con Grado
-  id_seccion: number | null; // Relación con Sección
+  fechaNacimiento: string | null;
+  idGrado: number | null; // Relación con Grado
+  idSeccion: number | null; // Relación con Sección
   status: StudentStatus;
   lugarNacimiento?: string;
   direccion?: string;
@@ -62,10 +64,10 @@ export interface Teacher {
 // Interfaz de Materia (Asignatura)
 export interface Materia {
   id: number;
-  nombre_materia: string;
-  id_docente: number | null; // Docente asignado
-  id_grado: number | null;
-  id_seccion: number | null;
+  nombreMateria: string;
+  idDocente: number | null; // Docente asignado
+  idGrado: number | null;
+  idSeccion: number | null;
 }
 
 // Interfaz de Año Escolar (Período lectivo)
@@ -84,9 +86,11 @@ export interface Evaluacion {
 
 // Estructura de Calificaciones para un Estudiante en una Materia y Año específico
 export interface Calificacion {
-  id: number; // Corresponde al studentId
-  id_materia: number;
-  id_año_escolar: number;
+  id: number; // Unique PK
+  studentId: number;
+  materiaId: number;
+  anoEscolarId: number;
+  isLocked: boolean;
   lapso1: Evaluacion[]; // Lista de evaluaciones del 1er Lapso
   lapso2: Evaluacion[]; // Lista de evaluaciones del 2do Lapso
   lapso3: Evaluacion[]; // Lista de evaluaciones del 3er Lapso
@@ -144,8 +148,10 @@ export enum ModalType {
   EditMateria = 'EDIT_MATERIA',
   AddGrado = 'ADD_GRADO',
   EditGrado = 'EDIT_GRADO',
+  BatchAddGrado = 'BATCH_ADD_GRADO',
   AddSeccion = 'ADD_SECCION',
   EditSeccion = 'EDIT_SECCION',
+  BatchAddSeccion = 'BATCH_ADD_SECCION',
   AddSchoolYear = 'ADD_SCHOOL_YEAR',
   EditSchoolYear = 'EDIT_SCHOOL_YEAR',
   ResetPassword = 'RESET_PASSWORD',

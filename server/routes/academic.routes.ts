@@ -10,6 +10,7 @@ router.use(authenticateToken); // Protect all
 // Grados
 const gradosRouter = Router();
 gradosRouter.post('/', asyncHandler(AcademicController.createGrado));
+gradosRouter.post('/batch', asyncHandler(AcademicController.createBatchGrados));
 gradosRouter.put('/:id', asyncHandler(AcademicController.updateGrado));
 gradosRouter.delete('/:id', asyncHandler(AcademicController.deleteGrado));
 router.use('/grados', gradosRouter);
@@ -17,6 +18,7 @@ router.use('/grados', gradosRouter);
 // Secciones
 const seccionesRouter = Router();
 seccionesRouter.post('/', asyncHandler(AcademicController.createSeccion));
+seccionesRouter.post('/batch', asyncHandler(AcademicController.createBatchSecciones));
 seccionesRouter.put('/:id', asyncHandler(AcademicController.updateSeccion));
 seccionesRouter.delete('/:id', asyncHandler(AcademicController.deleteSeccion));
 router.use('/secciones', seccionesRouter);

@@ -8,18 +8,19 @@ import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
 import { api } from '../lib/api';
 
-const initialFormState: Omit<Grado, 'id_grado'> = {
-  nombre_grado: '',
+const initialFormState: Omit<Grado, 'id'> = {
+  nombreGrado: '',
+  anoEscolarId: 0,
 };
 
 // Modal para Crear/Editar Grado
 export const AddGradoModal: React.FC = () => {
-  const { modalState } = useAppState();
+  const { modalState, añosEscolares } = useAppState();
   const dispatch = useAppDispatch();
   const gradoToEdit = modalState.data as Grado | null;
   const isEditing = gradoToEdit !== null;
 
-  const [formData, setFormData] = useState<Omit<Grado, 'id_grado'>>(initialFormState);
+  const [formData, setFormData] = useState<Omit<Grado, 'id'>>(initialFormState);
 
   // Cargar datos en edición
   useEffect(() => {
@@ -32,9 +33,12 @@ export const AddGradoModal: React.FC = () => {
 
   const onClose = () => dispatch({ type: ActionType.CLOSE_MODAL });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'anoEscolarId' ? Number(value) : value
+    }));
   };
 
   // Enviar cambios
@@ -42,10 +46,13 @@ export const AddGradoModal: React.FC = () => {
     e.preventDefault();
     try {
       if (isEditing) {
-        await api.updateGrado(gradoToEdit.id_grado, formData);
-        dispatch({ type: ActionType.SAVE_GRADO, payload: { ...formData, id_grado: gradoToEdit.id_grado } });
+        await api.updateGrado(gradoToEdit.id, formData);
+        dispatch({ type: ActionType.SAVE_GRADO, payload: { ...formData, id: gradoToEdit.id } as Grado });
       } else {
-        const response = await api.createGrado(formData);
+        const response = await api.createGrado({
+          nombreGrado: formData.nombreGrado,
+          anoEscolarId: formData.anoEscolarId
+        });
         dispatch({ type: ActionType.SAVE_GRADO, payload: response.data });
       }
       onClose();
@@ -74,13 +81,27 @@ export const AddGradoModal: React.FC = () => {
             <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Nombre del Grado</label>
             <input
               type="text"
-              name="nombre_grado"
-              value={formData.nombre_grado}
+              name="nombreGrado"
+              value={formData.nombreGrado}
               onChange={handleChange}
               placeholder="Ej: 1er Año"
               required
-              className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5"
+              className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5 mb-4"
             />
+
+            <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Año Escolar</label>
+            <select
+              name="anoEscolarId"
+              value={formData.anoEscolarId || ''}
+              onChange={handleChange}
+              required
+              className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5"
+            >
+              <option value="" disabled>Seleccione un Año Escolar...</option>
+              {añosEscolares.map(ay => (
+                <option key={ay.id} value={ay.id}>{ay.nombre}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center justify-end p-6 border-t border-moon-border rounded-b-xl space-x-3">
             <button

@@ -6,7 +6,7 @@ import { type Student, StudentStatus } from '../types';
 import { XIcon, UserIcon, BookOpenIcon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
-import { api } from '../lib/api';
+import { api, type StudentData } from '../lib/api';
 
 const initialFormState: Omit<Student, 'id'> = {
   nacionalidad: 'V',
@@ -14,10 +14,10 @@ const initialFormState: Omit<Student, 'id'> = {
   nombres: '',
   apellidos: '',
   email: '',
-  genero: 'F',
-  fecha_nacimiento: '',
-  id_grado: null,
-  id_seccion: null,
+  genero: 'M',
+  fechaNacimiento: '',
+  idGrado: null,
+  idSeccion: null,
   status: StudentStatus.ACTIVO,
   lugarNacimiento: '',
   direccion: '',
@@ -44,9 +44,24 @@ export const StudentModal: React.FC = () => {
   useEffect(() => {
     if (isEditing) {
       setFormData({
-        ...studentToEdit,
-        // Ajustar formato de fecha para input date
-        fecha_nacimiento: studentToEdit.fecha_nacimiento ? studentToEdit.fecha_nacimiento.split('T')[0] : '',
+        nacionalidad: studentToEdit.nacionalidad,
+        cedula: studentToEdit.cedula,
+        nombres: studentToEdit.nombres,
+        apellidos: studentToEdit.apellidos,
+        email: studentToEdit.email || '',
+        genero: studentToEdit.genero || 'M',
+        fechaNacimiento: studentToEdit.fechaNacimiento ? new Date(studentToEdit.fechaNacimiento).toISOString().split('T')[0] : '',
+        idGrado: studentToEdit.idGrado,
+        idSeccion: studentToEdit.idSeccion,
+        status: studentToEdit.status,
+        lugarNacimiento: studentToEdit.lugarNacimiento || '',
+        direccion: studentToEdit.direccion || '',
+        telefono: studentToEdit.telefono || '',
+        representante: studentToEdit.representante || '',
+        cedulaR: studentToEdit.cedulaR || '',
+        telefonoR: studentToEdit.telefonoR || '',
+        emailR: studentToEdit.emailR || '',
+        observaciones: studentToEdit.observaciones || ''
       });
     } else {
       setFormData(initialFormState);
@@ -70,29 +85,13 @@ export const StudentModal: React.FC = () => {
     e.preventDefault();
 
     // Mapeo de datos del formulario (CamelCase) a lo que espera el Backend (SnakeCase defined in Zod Schema)
-    const dataToSave = {
-      nacionalidad: formData.nacionalidad,
-      cedula: formData.cedula,
-      nombres: formData.nombres,
-      apellidos: formData.apellidos,
-      email: formData.email,
-      genero: formData.genero,
-      fecha_nacimiento: formData.fecha_nacimiento ? new Date(formData.fecha_nacimiento).toISOString() : null,
-
-      // Mapeo explícito
-      lugar_nacimiento: formData.lugarNacimiento || '',
-      direccion: formData.direccion || '',
-      telefono: formData.telefono || '',
-
-      nombre_representante: formData.representante || '',
-      cedula_representante: formData.cedulaR || '',
-      telefono_representante: formData.telefonoR || '',
-      email_representante: formData.emailR || '',
-      observaciones: formData.observaciones || '',
-
-      id_grado: formData.id_grado ? Number(formData.id_grado) : null,
-      id_seccion: formData.id_seccion ? Number(formData.id_seccion) : null,
-      status: formData.status
+    const dataToSave: StudentData = {
+      ...formData,
+      nacionalidad: formData.nacionalidad as 'V' | 'E',
+      genero: formData.genero as 'F' | 'M',
+      idGrado: formData.idGrado ? Number(formData.idGrado) : null,
+      idSeccion: formData.idSeccion ? Number(formData.idSeccion) : null,
+      fechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : null
     };
 
     try {
@@ -210,8 +209,13 @@ export const StudentModal: React.FC = () => {
                     </div>
                     <div>
                       <label className="block mb-1 text-sm font-medium text-moon-text-secondary">Fecha Nac.</label>
-                      <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento || ''} onChange={handleChange} className="w-full bg-moon-nav border border-moon-border rounded-lg p-2 text-moon-text" />
-                    </div>
+                      <input
+                        type="date"
+                        name="fechaNacimiento"
+                        value={formData.fechaNacimiento || ''}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      />        </div>
                   </div>
 
                   {/* Lugar y Dirección */}
@@ -244,16 +248,37 @@ export const StudentModal: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block mb-1 text-sm font-medium text-moon-text-secondary">Grado</label>
-                    <select name="id_grado" value={formData.id_grado || ''} onChange={handleNumericChange} className="w-full bg-moon-nav border border-moon-border rounded-lg p-2 text-moon-text">
-                      <option value="">Seleccione...</option>
-                      {grados.map(g => <option key={g.id_grado} value={g.id_grado}>{g.nombre_grado}</option>)}
+                    <select
+                      name="idGrado"
+                      value={formData.idGrado || ''}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    >
+                      <option value="">Seleccionar Grado</option>
+                      {grados.map(g => (
+                        <option key={g.id} value={g.id}>{g.nombreGrado}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label className="block mb-1 text-sm font-medium text-moon-text-secondary">Sección</label>
-                    <select name="id_seccion" value={formData.id_seccion || ''} onChange={handleNumericChange} className="w-full bg-moon-nav border border-moon-border rounded-lg p-2 text-moon-text">
-                      <option value="">Seleccione...</option>
-                      {secciones.map(s => <option key={s.id_seccion} value={s.id_seccion}>{s.nombre_seccion}</option>)}
+                    <select
+                      name="idSeccion"
+                      value={formData.idSeccion || ''}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    >
+                      <option value="">Seleccionar Sección</option>
+                      {secciones
+                        .filter(s => s.idGrado === Number(formData.idGrado))
+                        .map(s => {
+                          const grado = grados.find(g => g.id === s.idGrado);
+                          return (
+                            <option key={s.id} value={s.id}>
+                              {grado ? `${grado.nombreGrado} "${s.nombreSeccion}"` : s.nombreSeccion}
+                            </option>
+                          );
+                        })}
                     </select>
                   </div>
                   <div>

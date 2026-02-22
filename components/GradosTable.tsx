@@ -33,7 +33,7 @@ const TableRowActions: React.FC<{ grado: Grado; onEdit: (grado: Grado) => void; 
               <EditIcon />
               <span className="ml-3">Editar</span>
             </button>
-            <button onClick={() => { onDelete(grado.id_grado); setIsOpen(false); }} className="w-full flex items-center px-3 py-2 text-sm text-red-400 rounded-lg hover:bg-red-500/20">
+            <button onClick={() => { onDelete(grado.id); setIsOpen(false); }} className="w-full flex items-center px-3 py-2 text-sm text-red-400 rounded-lg hover:bg-red-500/20">
               <Trash2Icon />
               <span className="ml-3">Eliminar</span>
             </button>
@@ -73,13 +73,13 @@ export const GradosTable: React.FC<GradosTableProps> = ({ grados, onEdit, onDele
               </tr>
             ) : (
               grados.map((grado) => (
-                <tr key={grado.id_grado} className="bg-moon-component border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
+                <tr key={grado.id} className="bg-moon-component border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-9 h-9 rounded-full bg-moon-purple/20 flex items-center justify-center mr-3">
                         <BookOpenIcon />
                       </div>
-                      {grado.nombre_grado}
+                      {grado.nombreGrado}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">

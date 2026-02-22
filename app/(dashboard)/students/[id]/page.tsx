@@ -91,7 +91,7 @@ export default function StudentProfilePage() {
                             </div>
                             <div>
                                 <span className="text-moon-text-secondary block text-xs uppercase mb-1">Nacimiento</span>
-                                <div className="text-moon-text">{profile.student.fecha_nacimiento || 'No registrada'}</div>
+                                <div className="text-moon-text">{profile.student.fechaNacimiento || 'No registrada'}</div>
                                 <div className="text-moon-text text-moon-text-secondary">{profile.student.lugarNacimiento || 'Lugar no registrado'}</div>
                             </div>
                             <div>
@@ -173,8 +173,8 @@ export default function StudentProfilePage() {
                                         <div key={year.id} className="animate-fade-in">
                                             <div className="flex justify-between items-center mb-6">
                                                 <div>
-                                                    <h3 className="text-lg font-bold text-white">{year.grado}</h3>
-                                                    <p className="text-sm text-moon-text-secondary">Sección "{year.seccion}"</p>
+                                                    <h3 className="text-lg font-bold text-white">{year.nombreGrado}</h3>
+                                                    <p className="text-sm text-moon-text-secondary">Sección "{year.nombreSeccion}"</p>
                                                 </div>
                                                 <button
                                                     onClick={() => router.push(`/reports?studentId=${id}&anoId=${year.id}`)} // Navegación simulada al reporte
@@ -200,7 +200,7 @@ export default function StudentProfilePage() {
                                                             const def = ((Number(getLapsoNota(materia.lapso1)) + Number(getLapsoNota(materia.lapso2)) + Number(getLapsoNota(materia.lapso3))) / 3).toFixed(1);
                                                             return (
                                                                 <tr key={idx} className="border-b border-moon-border hover:bg-moon-nav/50">
-                                                                    <td className="px-4 py-3 font-medium text-white">{materia.nombre_materia}</td>
+                                                                    <td className="px-4 py-3 font-medium text-white">{materia.nombreMateria}</td>
                                                                     <td className="px-4 py-3 text-center">{getLapsoNota(materia.lapso1)}</td>
                                                                     <td className="px-4 py-3 text-center">{getLapsoNota(materia.lapso2)}</td>
                                                                     <td className="px-4 py-3 text-center">{getLapsoNota(materia.lapso3)}</td>

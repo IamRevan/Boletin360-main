@@ -49,8 +49,8 @@ export const SchoolYearsPage: React.FC = () => {
     const onAddGrado = () => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddGrado } });
     const onEditGrado = (grado: Grado) => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.EditGrado, data: grado } });
     const onDeleteGrado = async (id: number) => {
-        const item = grados.find(i => i.id_grado === id);
-        if (window.confirm(`¿Está seguro que desea eliminar el grado '${item?.nombre_grado}'? Esto podría afectar a estudiantes y materias asignadas.`)) {
+        const item = grados.find(i => i.id === id);
+        if (window.confirm(`¿Está seguro que desea eliminar el grado '${item?.nombreGrado}'? Esto podría afectar a estudiantes y materias asignadas.`)) {
             try {
                 await api.deleteGrado(id);
                 dispatch({ type: ActionType.DELETE_GRADO, payload: id });
@@ -65,8 +65,8 @@ export const SchoolYearsPage: React.FC = () => {
     const onAddSeccion = () => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddSeccion } });
     const onEditSeccion = (seccion: Seccion) => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.EditSeccion, data: seccion } });
     const onDeleteSeccion = async (id: number) => {
-        const item = secciones.find(i => i.id_seccion === id);
-        if (window.confirm(`¿Está seguro que desea eliminar la sección '${item?.nombre_seccion}'? Esto podría afectar a estudiantes y materias asignadas.`)) {
+        const item = secciones.find(i => i.id === id);
+        if (window.confirm(`¿Está seguro que desea eliminar la sección '${item?.nombreSeccion}'? Esto podría afectar a estudiantes y materias asignadas.`)) {
             try {
                 await api.deleteSeccion(id);
                 dispatch({ type: ActionType.DELETE_SECCION, payload: id });
@@ -97,9 +97,14 @@ export const SchoolYearsPage: React.FC = () => {
                     <div className="space-y-4 animate-[fade-in_0.3s_ease-out]">
                         <div className="flex justify-between items-center">
                             <p className="text-moon-text-secondary">Gestiona los grados o años que componen la estructura académica.</p>
-                            <button onClick={onAddGrado} className="bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
-                                <PlusIcon /> <span className="ml-2 hidden sm:inline">Añadir Grado</span>
-                            </button>
+                            <div className="flex space-x-2">
+                                <button onClick={() => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.BatchAddGrado } })} className="bg-moon-nav border border-moon-purple text-moon-text-secondary hover:text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+                                    <PlusIcon /> <span className="ml-2 hidden sm:inline">Añadir Múltiples</span>
+                                </button>
+                                <button onClick={onAddGrado} className="bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+                                    <PlusIcon /> <span className="ml-2 hidden sm:inline">Añadir Grado</span>
+                                </button>
+                            </div>
                         </div>
                         <GradosTable grados={grados} onEdit={onEditGrado} onDelete={onDeleteGrado} />
                     </div>
@@ -109,11 +114,16 @@ export const SchoolYearsPage: React.FC = () => {
                     <div className="space-y-4 animate-[fade-in_0.3s_ease-out]">
                         <div className="flex justify-between items-center">
                             <p className="text-moon-text-secondary">Gestiona las secciones en las que se dividen los grados.</p>
-                            <button onClick={onAddSeccion} className="bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
-                                <PlusIcon /> <span className="ml-2 hidden sm:inline">Añadir Sección</span>
-                            </button>
+                            <div className="flex space-x-2">
+                                <button onClick={() => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.BatchAddSeccion } })} className="bg-moon-nav border border-moon-purple text-moon-text-secondary hover:text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+                                    <PlusIcon /> <span className="ml-2 hidden sm:inline">Añadir Múltiples</span>
+                                </button>
+                                <button onClick={onAddSeccion} className="bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+                                    <PlusIcon /> <span className="ml-2 hidden sm:inline">Añadir Sección</span>
+                                </button>
+                            </div>
                         </div>
-                        <SeccionesTable secciones={secciones} onEdit={onEditSeccion} onDelete={onDeleteSeccion} />
+                        <SeccionesTable secciones={secciones} grados={grados} onEdit={onEditSeccion} onDelete={onDeleteSeccion} />
                     </div>
                 );
             default:

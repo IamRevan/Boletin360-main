@@ -10,15 +10,24 @@ import { useToast } from '../state/ToastContext';
 import { StudentStatus } from '../types';
 
 interface ImportedStudent {
-    nacionalidad: string;
+    nacionalidad: 'V' | 'E';
     cedula: string;
     nombres: string;
     apellidos: string;
     email: string;
-    genero: string;
-    fecha_nacimiento?: string;
-    id_grado?: number;
-    id_seccion?: number;
+    genero: 'F' | 'M';
+    fechaNacimiento?: string;
+    idGrado?: number;
+    idSeccion?: number;
+    status?: StudentStatus;
+    lugarNacimiento?: string;
+    direccion?: string;
+    telefono?: string;
+    representante?: string;
+    cedulaR?: string;
+    telefonoR?: string;
+    emailR?: string;
+    observaciones?: string;
 }
 
 interface ExcelImportModalProps {
@@ -54,18 +63,26 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
 
                 // Mapear columnas del Excel a campos esperados
                 const mapped: ImportedStudent[] = jsonData.map((row, index) => {
-                    const student: ImportedStudent = {
-                        nacionalidad: row['Nacionalidad'] || row['nacionalidad'] || 'V',
-                        cedula: String(row['Cedula'] || row['cedula'] || row['Cédula'] || ''),
-                        nombres: row['Nombres'] || row['nombres'] || '',
-                        apellidos: row['Apellidos'] || row['apellidos'] || '',
-                        email: row['Email'] || row['email'] || row['Correo'] || '',
-                        genero: row['Genero'] || row['genero'] || row['Género'] || 'F',
-                        fecha_nacimiento: row['Fecha_Nacimiento'] || row['fecha_nacimiento'] || undefined,
-                        id_grado: row['Grado'] ? Number(row['Grado']) : undefined,
-                        id_seccion: row['Seccion'] ? Number(row['Seccion']) : undefined,
+                    const importedStudent: ImportedStudent = {
+                        nacionalidad: (row['Nacionalidad'] || row['nacionalidad'] || 'V').toString().toUpperCase() as 'V' | 'E',
+                        cedula: (row['Cédula'] || row['cedula'] || '').toString(),
+                        nombres: (row['Nombres'] || row['nombres'] || '').toString(),
+                        apellidos: (row['Apellidos'] || row['apellidos'] || '').toString(),
+                        email: (row['Email'] || row['email'] || row['Correo'] || '').toString(),
+                        genero: (row['Género'] || row['genero'] || 'M').toString().toUpperCase() as 'F' | 'M',
+                        fechaNacimiento: row['Fecha Nacimiento'] || row['fecha_nacimiento'] || null,
+                        lugarNacimiento: row['Lugar Nacimiento'] || row['lugar_nacimiento'] || '',
+                        direccion: row['Dirección'] || row['direccion'] || '',
+                        telefono: row['Teléfono'] || row['telefono'] || '',
+                        representante: row['Representante'] || row['representante'] || '',
+                        cedulaR: row['Cédula Representante'] || row['cedula_representante'] || '',
+                        telefonoR: row['Teléfono Representante'] || row['telefono_representante'] || '',
+                        emailR: row['Email Representante'] || row['email_representante'] || '',
+                        idGrado: row['Grado'] ? Number(row['Grado']) : undefined,
+                        idSeccion: row['Seccion'] ? Number(row['Seccion']) : undefined,
+                        status: StudentStatus.ACTIVO
                     };
-                    return student;
+                    return importedStudent;
                 });
 
                 // Validar datos mínimos

@@ -28,14 +28,14 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({ students, gr
     const dataByGrade = useMemo(() => {
         // Inicializar contadores por grado
         const counts: Record<string, number> = {};
-        grados.forEach(g => counts[g.nombre_grado] = 0);
+        grados.forEach(g => counts[g.nombreGrado] = 0);
         // Tambien manejar "Sin Asignar" o grados que no esten en la lista
         counts['Otros'] = 0;
 
         students.forEach(s => {
-            const grado = grados.find(g => g.id_grado === s.id_grado);
+            const grado = grados.find(g => g.id === s.idGrado);
             if (grado) {
-                counts[grado.nombre_grado] = (counts[grado.nombre_grado] || 0) + 1;
+                counts[grado.nombreGrado] = (counts[grado.nombreGrado] || 0) + 1;
             } else {
                 counts['Otros']++;
             }

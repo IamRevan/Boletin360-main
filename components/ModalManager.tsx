@@ -12,6 +12,8 @@ import { AddUserModal } from './AddUserModal';
 import { AddEvaluationModal } from './AddEvaluationModal';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import { CreateAnnouncementModal } from './CreateAnnouncementModal';
+import { BatchAddGradoModal } from './BatchAddGradoModal';
+import { BatchAddSeccionModal } from './BatchAddSeccionModal';
 import { ModalType } from '../types';
 
 export const ModalManager: React.FC = () => {
@@ -32,9 +34,13 @@ export const ModalManager: React.FC = () => {
         case ModalType.AddGrado:
         case ModalType.EditGrado:
             return <AddGradoModal />;
+        case ModalType.BatchAddGrado:
+            return <BatchAddGradoModal />;
         case ModalType.AddSeccion:
         case ModalType.EditSeccion:
             return <AddSeccionModal />;
+        case ModalType.BatchAddSeccion:
+            return <BatchAddSeccionModal />;
         case ModalType.AddSchoolYear:
         case ModalType.EditSchoolYear:
             return <AddSchoolYearModal />;

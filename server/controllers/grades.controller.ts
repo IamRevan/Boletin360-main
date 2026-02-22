@@ -17,8 +17,17 @@ export const syncGrades = async (req: AuthRequest, res: Response) => {
     if (!validation.success) {
         return res.status(400).json({ error: validation.error.issues });
     }
-    const { studentId, materiaId, añoId, lapso1, lapso2, lapso3 } = validation.data;
+    const { studentId, materiaId, anoEscolarId, lapso1, lapso2, lapso3 } = validation.data;
     const userRole = req.user?.role;
+    const teacherId = req.user?.teacherId; // Extracted from JWT
+
+    // RBAC: Verify if the teacher is assigned to this materia
+    if (userRole === UserRole.DOCENTE) {
+        const materia = await prisma.materia.findUnique({ where: { id: materiaId } });
+        if (!materia || materia.idDocente !== teacherId) {
+            return res.status(403).json({ error: 'No tienes permisos para modificar las calificaciones de esta materia.' });
+        }
+    }
 
     // Find existing Calificacion or Create it
     let calificacion = await prisma.calificacion.findUnique({
@@ -26,13 +35,13 @@ export const syncGrades = async (req: AuthRequest, res: Response) => {
             studentId_materiaId_anoEscolarId: {
                 studentId,
                 materiaId,
-                anoEscolarId: añoId
+                anoEscolarId
             }
         }
     });
 
     if (calificacion) {
-        // Check lock status
+        // Enforce lock status: only admins can bypass
         if (calificacion.isLocked && ![UserRole.ADMIN, UserRole.CONTROL_ESTUDIOS, UserRole.DIRECTOR].includes(userRole as any)) {
             return res.status(403).json({ error: 'Calificaciones bloqueadas/aprobadas. No se pueden editar.' });
         }
@@ -42,27 +51,27 @@ export const syncGrades = async (req: AuthRequest, res: Response) => {
             data: {
                 studentId,
                 materiaId,
-                anoEscolarId: añoId,
+                anoEscolarId,
                 isLocked: false
             }
         });
     }
 
-    const cid = calificacion.id;
+    const cid = (calificacion as any).id;
 
     // Helper to process evaluations (Sync: Delete old for lapso, insert new)
     const processLapso = async (lapsoNum: number, items: any[]) => {
         if (!items) return;
         // Transactional replacement for safety
         await prisma.$transaction([
-            prisma.evaluation.deleteMany({
+            (prisma as any).evaluation.deleteMany({
                 where: { calificacionId: cid, lapso: lapsoNum }
             }),
-            prisma.evaluation.createMany({
+            (prisma as any).evaluation.createMany({
                 data: items.map(item => ({
                     calificacionId: cid,
                     lapso: lapsoNum,
-                    descripcion: item.nombre,
+                    descripcion: item.descripcion,
                     nota: item.nota,
                     ponderacion: item.ponderacion
                 }))
@@ -87,10 +96,10 @@ export const syncGrades = async (req: AuthRequest, res: Response) => {
 };
 
 export const setLockStatus = async (req: Request, res: Response) => {
-    const { studentId, materiaId, añoId, isLocked } = req.body;
+    const { studentId, materiaId, anoEscolarId, isLocked } = req.body;
     await prisma.calificacion.update({
         where: {
-            studentId_materiaId_anoEscolarId: { studentId, materiaId, anoEscolarId: añoId }
+            studentId_materiaId_anoEscolarId: { studentId, materiaId, anoEscolarId }
         },
         data: { isLocked }
     });
@@ -109,17 +118,17 @@ export const getBoletin = async (req: Request, res: Response) => {
     // Query Aggregated Grades
     const boletin = await prisma.$queryRaw`
         SELECT 
-            m.id as materia_id,
-            m.nombre_materia,
-            c.is_locked,
+            m.id as "materiaId",
+            m.nombre_materia as "nombreMateria",
+            c.is_locked as "isLocked",
             
             (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
             (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
             (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3,
 
-            g.nombre_grado,
-            s.nombre_seccion,
-            t.nombres as docente_nombres, t.apellidos as docente_apellidos
+            g.nombre_grado as "nombreGrado",
+            s.nombre_seccion as "nombreSeccion",
+            t.nombres as "docenteNombres", t.apellidos as "docenteApellidos"
         FROM calificaciones c
         JOIN materias m ON c.materia_id = m.id
         JOIN grados g ON m.id_grado = g.id_grado
@@ -131,7 +140,7 @@ export const getBoletin = async (req: Request, res: Response) => {
     res.json({
         student: {
             ...student,
-            fecha_nacimiento: student.fechaNacimiento ? student.fechaNacimiento.toISOString().split('T')[0] : null
+            fechaNacimiento: student.fechaNacimiento ? student.fechaNacimiento.toISOString().split('T')[0] : null
         },
         anoEscolar,
         boletin
@@ -161,9 +170,9 @@ export const getActa = async (req: Request, res: Response) => {
 
             result = await prisma.$queryRaw`
                 SELECT 
-                    st.id as student_id, st.nombres, st.apellidos, st.cedula,
-                    m.id as materia_id, m.nombre_materia,
-                    c.is_locked,
+                    st.id as "studentId", st.nombres, st.apellidos, st.cedula,
+                    m.id as "materiaId", m.nombre_materia as "nombreMateria",
+                    c.is_locked as "isLocked",
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
@@ -177,9 +186,9 @@ export const getActa = async (req: Request, res: Response) => {
             if (!gradoId || !seccionId) return res.status(400).json({ error: 'Falta Grado/Seccion o StudentId' });
             result = await prisma.$queryRaw`
                 SELECT 
-                    st.id as student_id, st.nombres, st.apellidos, st.cedula,
-                    m.id as materia_id, m.nombre_materia,
-                    c.is_locked,
+                    st.id as "studentId", st.nombres, st.apellidos, st.cedula,
+                    m.id as "materiaId", m.nombre_materia as "nombreMateria",
+                    c.is_locked as "isLocked",
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
@@ -193,23 +202,23 @@ export const getActa = async (req: Request, res: Response) => {
 
         const studentsMap = new Map();
         result.forEach(row => {
-            if (!studentsMap.has(row.student_id)) {
-                studentsMap.set(row.student_id, {
-                    student_id: row.student_id,
+            if (!studentsMap.has(row.studentId)) {
+                studentsMap.set(row.studentId, {
+                    studentId: row.studentId,
                     nombres: row.nombres,
                     apellidos: row.apellidos,
                     cedula: row.cedula,
                     materias: []
                 });
             }
-            if (row.materia_id) {
-                studentsMap.get(row.student_id).materias.push({
-                    materia_id: row.materia_id,
-                    nombre_materia: row.nombre_materia,
+            if (row.materiaId) {
+                studentsMap.get(row.studentId).materias.push({
+                    materiaId: row.materiaId,
+                    nombreMateria: row.nombreMateria,
                     lapso1: row.lapso1, // Now a single number (averaged/summed)
                     lapso2: row.lapso2,
                     lapso3: row.lapso3,
-                    is_locked: row.is_locked
+                    isLocked: row.isLocked
                 });
             }
         });
@@ -237,8 +246,8 @@ export const exportXlsx = async (req: Request, res: Response) => {
     try {
         const result: any[] = await prisma.$queryRaw`
             SELECT 
-                st.id as student_id, st.nombres, st.apellidos, st.cedula,
-                m.id as materia_id, m.nombre_materia,
+                st.id as "studentId", st.nombres, st.apellidos, st.cedula,
+                m.id as "materiaId", m.nombre_materia as "nombreMateria",
                 (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 1) as lapso1,
                 (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
                 (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
@@ -266,7 +275,7 @@ export const exportXlsx = async (req: Request, res: Response) => {
         worksheet.addRow([]);
 
         const materiasMap = new Map();
-        result.forEach(r => materiasMap.set(r.materia_id, r.nombre_materia));
+        result.forEach(r => materiasMap.set(r.materiaId, r.nombreMateria));
         const materiasIds = Array.from(materiasMap.keys()).sort();
 
         const headerRow = ['Cédula', 'Estudiante'];
@@ -277,8 +286,8 @@ export const exportXlsx = async (req: Request, res: Response) => {
 
         const studentsLink = new Map();
         result.forEach(r => {
-            if (!studentsLink.has(r.student_id)) {
-                studentsLink.set(r.student_id, {
+            if (!studentsLink.has(r.studentId)) {
+                studentsLink.set(r.studentId, {
                     cedula: r.cedula,
                     nombre: `${r.apellidos}, ${r.nombres}`,
                     materias: {}
@@ -286,7 +295,7 @@ export const exportXlsx = async (req: Request, res: Response) => {
             }
             // Calculated values directly from SQL
             const final = ((r.lapso1 || 0) + (r.lapso2 || 0) + (r.lapso3 || 0)) / 3;
-            studentsLink.get(r.student_id).materias[r.materia_id] = final.toFixed(1);
+            studentsLink.get(r.studentId).materias[r.materiaId] = final.toFixed(1);
         });
 
         studentsLink.forEach((st) => {

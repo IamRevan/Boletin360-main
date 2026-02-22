@@ -19,7 +19,7 @@ export const ConstanciaReport: React.FC<ActaReportProps> = ({ data }) => {
         <div className="w-full max-w-[21.59cm] mx-auto print:max-w-none">
             {acta.map((student: any, index: number) => (
                 <div
-                    key={student.student_id}
+                    key={student.studentId}
                     className={`bg-white text-black p-12 min-h-[27.94cm] relative shadow-2xl print:shadow-none font-sans text-sm mb-8 print:mb-0 ${index < acta.length - 1 ? 'print:break-after-page' : ''}`}
                 >
                     {/* Header */}
@@ -56,7 +56,7 @@ export const ConstanciaReport: React.FC<ActaReportProps> = ({ data }) => {
 
                         <p className="indent-8 mb-4">
                             Titular de la Cédula de Identidad Nº <strong>V-{student.cedula}</strong>,
-                            se encuentra inscrito(a) en este plantel cursando el <strong>{grado.nombre_grado}</strong> año de Educación Media General,
+                            se encuentra inscrito(a) en este plantel cursando el <strong>{grado.nombreGrado}</strong> año de Educación Media General,
                             correspondiente al Año Escolar <strong>{anoEscolar.nombre}</strong>.
                         </p>
 

@@ -28,6 +28,9 @@ export const updateTeacher = async (req: Request, res: Response) => {
 
 export const deleteTeacher = async (req: Request, res: Response) => {
     const { id } = req.params;
-    await prisma.teacher.delete({ where: { id: Number(id) } });
+    await prisma.teacher.update({
+        where: { id: Number(id) },
+        data: { deletedAt: new Date() }
+    });
     res.json({ success: true });
 };

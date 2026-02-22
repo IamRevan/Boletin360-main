@@ -66,9 +66,9 @@ const RecentStudentsList: React.FC<{
 }> = ({ students, grados, secciones, readOnly, onEdit, onDelete, isLoading }) => {
 
   // Helper para mostrar Grado y Sección formateados
-  const getGradoSeccion = (id_grado: number | null, id_seccion: number | null) => {
-    const grado = grados.find(g => g.id_grado === id_grado)?.nombre_grado || '';
-    const seccion = secciones.find(s => s.id_seccion === id_seccion)?.nombre_seccion || '';
+  const getGradoSeccion = (idGrado: number | null, idSeccion: number | null) => {
+    const grado = grados.find(g => g.id === idGrado)?.nombreGrado || '';
+    const seccion = secciones.find(s => s.id === idSeccion)?.nombreSeccion || '';
     if (grado && seccion) return `${grado} "${seccion}"`;
     return 'Sin asignar';
   };
@@ -115,7 +115,7 @@ const RecentStudentsList: React.FC<{
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">{getGradoSeccion(student.id_grado, student.id_seccion)}</td>
+                  <td className="px-6 py-4">{getGradoSeccion(student.idGrado, student.idSeccion)}</td>
                   {!readOnly && onEdit && onDelete && (
                     <td className="px-6 py-4 text-right">
                       <RecentStudentActions student={student} onEdit={onEdit} onDelete={onDelete} />
@@ -174,6 +174,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
   if (!currentUser) return null;
 
   const isTeacher = currentUser.role === UserRole.DOCENTE;
+  const isControlEstudios = currentUser.role === UserRole.CONTROL_ESTUDIOS;
+  const isDirectorOrAdmin = currentUser.role === UserRole.DIRECTOR || currentUser.role === UserRole.ADMIN;
 
   // Handlers para modales
   const onAddStudentClick = () => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.AddStudent } });
@@ -203,15 +205,66 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
   if (isTeacher) {
     return (
       <div className="space-y-8 animate-[fade-in_0.5s_ease-out]">
-        <div>
-          <h2 className="text-3xl font-bold text-white">Dashboard del Docente</h2>
-          <p className="text-moon-text-secondary mt-1">¡Bienvenido! Aquí tiene un resumen de sus clases.</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold text-white">Dashboard del Docente</h2>
+            <p className="text-moon-text-secondary mt-1">¡Bienvenido! Aquí tiene un resumen de sus clases y pendientes.</p>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Mis Estudiantes" value={students.length.toString()} icon={<UsersIcon />} />
-          <StatCard title="Mis Materias" value={materias.length.toString()} icon={<BookOpenIcon />} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StatCard title="Total Mis Estudiantes" value={students.length.toString()} icon={<UsersIcon />} />
+          <StatCard title="Total Mis Materias" value={materias.length.toString()} icon={<BookOpenIcon />} />
+          <div className="bg-moon-component rounded-xl border border-moon-border p-6 shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="text-sm font-semibold text-moon-text-secondary uppercase tracking-wider mb-2">Acciones Rápidas</h3>
+            <p className="text-2xl font-bold text-white"><span className="text-sm text-moon-text font-normal">Sincronización de</span> Calificaciones</p>
+            <a href="/calificaciones" className="mt-4 inline-block text-sm text-moon-purple hover:text-white transition-colors">Ir a Evaluar &rarr;</a>
+          </div>
         </div>
         <RecentStudentsList students={recentStudents} grados={grados} secciones={secciones} readOnly={true} isLoading={isLoading} />
+      </div>
+    );
+  }
+
+  // Vista para Control de Estudios
+  if (isControlEstudios) {
+    const totalStudents = students.length;
+    const activeStudents = students.filter(s => s.status === StudentStatus.ACTIVO).length;
+    const missingRecords = students.filter(s => !s.idGrado || !s.idSeccion).length;
+
+    return (
+      <div className="space-y-8 animate-[fade-in_0.5s_ease-out]">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold text-white">Control de Estudios</h2>
+            <p className="text-moon-text-secondary mt-1">Gestión de la población estudiantil y expedientes académicos.</p>
+          </div>
+          <button
+            onClick={onAddStudentClick}
+            className="bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+            <PlusIcon />
+            <span className="ml-2 hidden sm:inline">Inscribir Estudiante</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StatCard title="Estudiantes Inscritos Totales" value={totalStudents.toString()} icon={<UsersIcon />} />
+          <StatCard title="Estudiantes Activos" value={activeStudents.toString()} icon={<CheckCircleIcon />} />
+          <div className="bg-moon-component rounded-xl border border-moon-border p-6 shadow-sm hover:border-red-500/50 transition-colors">
+            <h3 className="text-sm font-semibold text-moon-text-secondary uppercase tracking-wider mb-2">Atención Requerida</h3>
+            <p className="text-2xl font-bold text-red-400">{missingRecords} <span className="text-sm text-moon-text font-normal">Sin asignar</span></p>
+            <p className="mt-2 text-xs text-moon-text-secondary">Estudiantes con expedientes incompletos o sin grado/sección asignada.</p>
+          </div>
+        </div>
+
+        <RecentStudentsList
+          students={recentStudents}
+          grados={grados}
+          secciones={secciones}
+          readOnly={false}
+          onEdit={onEditStudent}
+          onDelete={onDeleteStudent}
+          isLoading={isLoading}
+        />
       </div>
     );
   }

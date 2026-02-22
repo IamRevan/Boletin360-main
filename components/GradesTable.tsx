@@ -144,12 +144,12 @@ export const GradesTable: React.FC<GradesTableProps> = ({ students, materiaId, a
     const lapsoKey = `lapso${lapso}` as const;
 
     const getCalificacionForStudent = useCallback((studentId: number): Calificacion | undefined => {
-        return calificaciones.find(c => c.id === studentId && c.id_materia === materiaId && c.id_año_escolar === añoId);
+        return calificaciones.find(c => c.studentId === studentId && c.materiaId === materiaId && c.anoEscolarId === añoId);
     }, [calificaciones, materiaId, añoId]);
 
     const evaluationDefinitions = useMemo(() => {
         const allEvaluations = calificaciones
-            .filter(c => c.id_materia === materiaId && c.id_año_escolar === añoId)
+            .filter(c => c.materiaId === materiaId && c.anoEscolarId === añoId)
             .flatMap(c => c[lapsoKey]);
 
         const uniqueEvals = new Map<string, { ponderacion: number }>();
@@ -171,13 +171,13 @@ export const GradesTable: React.FC<GradesTableProps> = ({ students, materiaId, a
     };
 
     const calculateLapsoAverage = useCallback((evals: Evaluacion[]): number | null => {
-        if (evals.length === 0) return null;
-        const totalPonderacion = evals.reduce((sum, e) => sum + e.ponderacion, 0);
+        if (evaluationDefinitions.length === 0) return null;
+        const totalPonderacion = evaluationDefinitions.reduce((sum, def) => sum + def.ponderacion, 0);
         if (totalPonderacion === 0) return null;
         const weightedSum = evals.reduce((sum, e) => sum + (e.nota * e.ponderacion), 0);
-        // The average is the sum of (nota * weight) divided by the sum of weights.
+        // The average is the sum of (nota * weight) divided by the total possible weight.
         return weightedSum / totalPonderacion;
-    }, []);
+    }, [evaluationDefinitions]);
 
     return (
         <div className="bg-moon-component rounded-xl border border-moon-border overflow-hidden animate-[fade-in_0.3s_ease-out]">

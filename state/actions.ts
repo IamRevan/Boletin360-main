@@ -72,14 +72,14 @@ export type Action =
   | { type: ActionType.DELETE_MATERIA; payload: number }
   | { type: ActionType.SAVE_SCHOOL_YEAR; payload: Omit<AñoEscolar, 'id'> | AñoEscolar }
   | { type: ActionType.DELETE_SCHOOL_YEAR; payload: number }
-  | { type: ActionType.SAVE_GRADO; payload: Omit<Grado, 'id_grado'> | Grado }
+  | { type: ActionType.SAVE_GRADO; payload: Omit<Grado, 'id'> | Grado }
   | { type: ActionType.DELETE_GRADO; payload: number }
-  | { type: ActionType.SAVE_SECCION; payload: Omit<Seccion, 'id_seccion'> | Seccion }
+  | { type: ActionType.SAVE_SECCION; payload: Omit<Seccion, 'id'> | Seccion }
   | { type: ActionType.DELETE_SECCION; payload: number }
-  | { type: ActionType.ADD_EVALUATIONS; payload: { studentIds: number[]; materiaId: number; añoId: number; lapso: 1 | 2 | 3; evaluations: { descripcion: string; ponderacion: number }[] } }
-  | { type: ActionType.UPDATE_EVALUATION_GRADE; payload: { studentId: number; materiaId: number; añoId: number; lapso: 1 | 2 | 3; evaluationId: string; newNota: number; } }
-  | { type: ActionType.UPSERT_GRADE; payload: { studentId: number; materiaId: number; añoId: number; lapso: 1 | 2 | 3; description: string; ponderacion: number; newNota: number; } }
-  | { type: ActionType.DELETE_EVALUATION_COLUMN; payload: { materiaId: number; añoId: number; lapso: 1 | 2 | 3; description: string; } }
+  | { type: ActionType.ADD_EVALUATIONS; payload: { studentIds: number[]; materiaId: number; anoEscolarId: number; lapso: 1 | 2 | 3; evaluations: { descripcion: string; ponderacion: number }[] } }
+  | { type: ActionType.UPDATE_EVALUATION_GRADE; payload: { studentId: number; materiaId: number; anoEscolarId: number; lapso: 1 | 2 | 3; evaluationId: string; newNota: number; } }
+  | { type: ActionType.UPSERT_GRADE; payload: { studentId: number; materiaId: number; anoEscolarId: number; lapso: 1 | 2 | 3; description: string; ponderacion: number; newNota: number; } }
+  | { type: ActionType.DELETE_EVALUATION_COLUMN; payload: { materiaId: number; anoEscolarId: number; lapso: 1 | 2 | 3; description: string; } }
   | { type: ActionType.MARK_NOTIFICATION_READ; payload: number }
   | { type: ActionType.MARK_ALL_NOTIFICATIONS_READ; payload: number }
   | { type: ActionType.SAVE_ANNOUNCEMENT; payload: Announcement }

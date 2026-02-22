@@ -11,13 +11,30 @@ interface GradesSummaryTableProps {
 }
 
 export const GradesSummaryTable: React.FC<GradesSummaryTableProps> = ({ students, materiaId, añoId, calificaciones }) => {
-  
-  const calculateLapsoAverage = (evals: Evaluacion[]): number | null => {
-      if (!evals || evals.length === 0) return null;
-      const totalPonderacion = evals.reduce((sum, e) => sum + e.ponderacion, 0);
-      if (totalPonderacion === 0) return null;
-      const weightedSum = evals.reduce((sum, e) => sum + (e.nota * e.ponderacion), 0);
-      return weightedSum / totalPonderacion;
+
+  const getEvaluationDefinitions = (lapsoKey: 'lapso1' | 'lapso2' | 'lapso3') => {
+    const allEvaluations = calificaciones
+      .filter(c => c.materiaId === materiaId && c.anoEscolarId === añoId)
+      .flatMap(c => c[lapsoKey] || []);
+    const uniqueEvals = new Map<string, { ponderacion: number }>();
+    allEvaluations.forEach(ev => {
+      if (!uniqueEvals.has(ev.descripcion)) {
+        uniqueEvals.set(ev.descripcion, { ponderacion: ev.ponderacion });
+      }
+    });
+    return Array.from(uniqueEvals.values());
+  };
+
+  const defs1 = useMemo(() => getEvaluationDefinitions('lapso1'), [calificaciones, materiaId, añoId]);
+  const defs2 = useMemo(() => getEvaluationDefinitions('lapso2'), [calificaciones, materiaId, añoId]);
+  const defs3 = useMemo(() => getEvaluationDefinitions('lapso3'), [calificaciones, materiaId, añoId]);
+
+  const calculateLapsoAverage = (evals: Evaluacion[], defs: { ponderacion: number }[]): number | null => {
+    if (defs.length === 0) return null;
+    const totalPonderacion = defs.reduce((sum, e) => sum + e.ponderacion, 0);
+    if (totalPonderacion === 0) return null;
+    const weightedSum = evals.reduce((sum, e) => sum + (e.nota * e.ponderacion), 0);
+    return weightedSum / totalPonderacion;
   };
 
   return (
@@ -35,51 +52,47 @@ export const GradesSummaryTable: React.FC<GradesSummaryTableProps> = ({ students
           </thead>
           <tbody>
             {students.length === 0 ? (
-                <tr>
-                    <td colSpan={5} className="text-center py-10 text-moon-text-secondary">No hay estudiantes en esta sección.</td>
-                </tr>
+              <tr>
+                <td colSpan={5} className="text-center py-10 text-moon-text-secondary">No hay estudiantes en esta sección.</td>
+              </tr>
             ) : (
-                students.map((student) => {
-                    const calificacion = calificaciones.find(c => c.id === student.id && c.id_materia === materiaId && c.id_año_escolar === añoId);
-                    
-                    const avg1 = calculateLapsoAverage(calificacion?.lapso1 || []);
-                    const avg2 = calculateLapsoAverage(calificacion?.lapso2 || []);
-                    const avg3 = calculateLapsoAverage(calificacion?.lapso3 || []);
+              students.map((student) => {
+                const calificacion = calificaciones.find(c => c.studentId === student.id && c.materiaId === materiaId && c.anoEscolarId === añoId);
 
-                    // Calculate definitive: average of the 3 lapsos. 
-                    // Treat nulls as 0? Or ignore? Usually if a lapso is missing, definitive is not ready. 
-                    // For now, let's treat null as 0 for calculation but display carefully.
-                    // Actually, let's only count existing averages.
-                    
-                    const validavgs = [avg1, avg2, avg3].filter(a => a !== null) as number[];
-                    const sumAvgs = validavgs.reduce((a, b) => a + b, 0);
-                    const definitive = validavgs.length > 0 ? sumAvgs / 3 : null; // Traditional: sum / 3 regardless of how many have passed? Or sum / valid? Usually / 3. Let's assume / 3 for school years.
+                const avg1 = calculateLapsoAverage(calificacion?.lapso1 || [], defs1);
+                const avg2 = calculateLapsoAverage(calificacion?.lapso2 || [], defs2);
+                const avg3 = calculateLapsoAverage(calificacion?.lapso3 || [], defs3);
 
-                    const getColor = (val: number | null) => {
-                        if (val === null) return 'text-moon-text-secondary';
-                        return val >= 9.5 ? 'text-moon-green' : 'text-moon-orange';
-                    };
+                // Running definitive average
+                const validavgs = [avg1, avg2, avg3].filter(a => a !== null) as number[];
+                const sumAvgs = validavgs.reduce((a, b) => a + b, 0);
+                const definitive = validavgs.length > 0 ? sumAvgs / validavgs.length : null;
 
-                    return (
-                       <tr key={student.id} className="group border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
-                            <td className="px-6 py-4 font-medium text-white whitespace-nowrap sticky left-0 bg-moon-component group-hover:bg-moon-nav/50 z-10 transition-colors">
-                                {student.nombres} {student.apellidos}
-                            </td>
-                            <td className={`px-6 py-4 text-center font-semibold ${getColor(avg1)}`}>
-                                {avg1?.toFixed(2) ?? '-'}
-                            </td>
-                            <td className={`px-6 py-4 text-center font-semibold ${getColor(avg2)}`}>
-                                {avg2?.toFixed(2) ?? '-'}
-                            </td>
-                            <td className={`px-6 py-4 text-center font-semibold ${getColor(avg3)}`}>
-                                {avg3?.toFixed(2) ?? '-'}
-                            </td>
-                            <td className={`px-6 py-4 text-center font-bold text-lg ${getColor(definitive)}`}>
-                                {definitive?.toFixed(2) ?? '-'}
-                            </td>
-                        </tr>
-                    );
-                })
+                const getColor = (val: number | null) => {
+                  if (val === null) return 'text-moon-text-secondary';
+                  return val >= 9.5 ? 'text-moon-green' : 'text-moon-orange';
+                };
+
+                return (
+                  <tr key={student.id} className="group border-b border-moon-border hover:bg-moon-nav/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-white whitespace-nowrap sticky left-0 bg-moon-component group-hover:bg-moon-nav/50 z-10 transition-colors">
+                      {student.nombres} {student.apellidos}
+                    </td>
+                    <td className={`px-6 py-4 text-center font-semibold ${getColor(avg1)}`}>
+                      {avg1?.toFixed(2) ?? '-'}
+                    </td>
+                    <td className={`px-6 py-4 text-center font-semibold ${getColor(avg2)}`}>
+                      {avg2?.toFixed(2) ?? '-'}
+                    </td>
+                    <td className={`px-6 py-4 text-center font-semibold ${getColor(avg3)}`}>
+                      {avg3?.toFixed(2) ?? '-'}
+                    </td>
+                    <td className={`px-6 py-4 text-center font-bold text-lg ${getColor(definitive)}`}>
+                      {definitive?.toFixed(2) ?? '-'}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -59,9 +59,9 @@ interface MateriaTableProps {
 export const MateriaTable: React.FC<MateriaTableProps> = ({ materias, teachers, grados, secciones, onEdit, onDelete, readOnly = false }) => {
 
   // Obtener nombre del docente
-  const getTeacherName = (id_docente: number | null): React.ReactNode => {
-    if (!id_docente) return 'Sin asignar';
-    const teacher = teachers.find(t => t.id === id_docente);
+  const getTeacherName = (idDocente: number | null): React.ReactNode => {
+    if (!idDocente) return 'Sin asignar';
+    const teacher = teachers.find(t => t.id === idDocente);
     if (!teacher) return 'Desconocido';
 
     const fullName = `${teacher.nombres} ${teacher.apellidos}`;
@@ -79,9 +79,9 @@ export const MateriaTable: React.FC<MateriaTableProps> = ({ materias, teachers, 
   };
 
   // Obtener Grado y Sección
-  const getGradoSeccion = (id_grado: number | null, id_seccion: number | null) => {
-    const grado = grados.find(g => g.id_grado === id_grado)?.nombre_grado || '';
-    const seccion = secciones.find(s => s.id_seccion === id_seccion)?.nombre_seccion || '';
+  const getGradoSeccion = (idGrado: number | null, idSeccion: number | null) => {
+    const grado = grados.find(g => g.id === idGrado)?.nombreGrado || '';
+    const seccion = secciones.find(s => s.id === idSeccion)?.nombreSeccion || '';
     if (grado && seccion) return `${grado} "${seccion}"`;
     return 'Sin asignar';
   };
@@ -115,11 +115,11 @@ export const MateriaTable: React.FC<MateriaTableProps> = ({ materias, teachers, 
                       <div className="w-9 h-9 rounded-full bg-moon-purple/20 flex items-center justify-center mr-3">
                         <BookOpenIcon />
                       </div>
-                      {materia.nombre_materia}
+                      {materia.nombreMateria}
                     </div>
                   </td>
-                  <td className="px-6 py-4">{getTeacherName(materia.id_docente)}</td>
-                  <td className="px-6 py-4">{getGradoSeccion(materia.id_grado, materia.id_seccion)}</td>
+                  <td className="px-6 py-4">{getTeacherName(materia.idDocente)}</td>
+                  <td className="px-6 py-4">{getGradoSeccion(materia.idGrado, materia.idSeccion)}</td>
                   {!readOnly && (
                     <td className="px-6 py-4 text-right">
                       <TableRowActions materia={materia} onEdit={onEdit} onDelete={onDelete} />

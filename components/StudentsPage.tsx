@@ -76,8 +76,8 @@ export const StudentsPage: React.FC = () => {
         student.apellidos.toLowerCase().includes(searchLower) ||
         student.cedula.includes(searchLower);
       // Filtros por grado y sección
-      const matchesGrade = filters.grade === '' || student.id_grado === parseInt(filters.grade, 10);
-      const matchesSection = filters.section === '' || student.id_seccion === parseInt(filters.section, 10);
+      const matchesGrade = filters.grade === '' || student.idGrado === parseInt(filters.grade, 10);
+      const matchesSection = filters.section === '' || student.idSeccion === parseInt(filters.section, 10);
       return matchesSearch && matchesGrade && matchesSection;
     });
   }, [students, filters]);
@@ -150,8 +150,8 @@ export const StudentsPage: React.FC = () => {
         Apellidos: s.apellidos,
         Email: s.email || '',
         Genero: s.genero || '',
-        Grado: grados.find(g => g.id_grado === s.id_grado)?.nombre_grado || '',
-        Seccion: secciones.find(sec => sec.id_seccion === s.id_seccion)?.nombre_seccion || '',
+        Grado: grados.find(g => g.id === s.idGrado)?.nombreGrado || '',
+        Seccion: secciones.find(sec => sec.id === s.idSeccion)?.nombreSeccion || '',
         Estado: s.status
       }));
 
@@ -218,14 +218,23 @@ export const StudentsPage: React.FC = () => {
             <label className="block text-sm font-medium text-moon-text-secondary mb-2">Grado</label>
             <select name="grade" value={filters.grade} onChange={handleFilterChange} className="w-full bg-moon-nav border border-moon-border rounded-lg py-2 px-3 text-moon-text focus:outline-none focus:ring-2 focus:ring-moon-purple-light focus:border-transparent">
               <option value="">Todos</option>
-              {grados.map(g => <option key={g.id_grado} value={g.id_grado}>{g.nombre_grado}</option>)}
+              {grados.map(g => <option key={g.id} value={g.id}>{g.nombreGrado}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-moon-text-secondary mb-2">Sección</label>
             <select name="section" value={filters.section} onChange={handleFilterChange} className="w-full bg-moon-nav border border-moon-border rounded-lg py-2 px-3 text-moon-text focus:outline-none focus:ring-2 focus:ring-moon-purple-light focus:border-transparent">
               <option value="">Todas</option>
-              {secciones.map(s => <option key={s.id_seccion} value={s.id_seccion}>{s.nombre_seccion}</option>)}
+              {secciones
+                .filter(s => !filters.grade || s.idGrado === parseInt(filters.grade, 10))
+                .map(s => {
+                  const grado = grados.find(g => g.id === s.idGrado);
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {grado ? `${grado.nombreGrado} "${s.nombreSeccion}"` : s.nombreSeccion}
+                    </option>
+                  );
+                })}
             </select>
           </div>
         </div>

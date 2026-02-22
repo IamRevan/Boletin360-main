@@ -6,7 +6,7 @@ import { type User, UserRole } from '../types';
 import { XIcon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
-import { api } from '../lib/api';
+import { api, type UpdateUserData, type CreateUserData } from '../lib/api';
 
 const initialFormState: Omit<User, 'id'> & { confirmPassword?: string } = {
   nombres: '',
@@ -84,7 +84,13 @@ export const AddUserModal: React.FC = () => {
 
 
     if (isEditing) {
-      const dataToSave: Partial<User> = { nombres: finalData.nombres, apellidos: finalData.apellidos, email: finalData.email, role: finalData.role, teacherId: finalData.teacherId };
+      const dataToSave: UpdateUserData = {
+        nombres: finalData.nombres,
+        apellidos: finalData.apellidos,
+        email: finalData.email,
+        role: finalData.role as any, // Cast to any to avoid strict enum mismatch if any
+        teacherId: finalData.teacherId
+      };
       if (finalData.password) {
         dataToSave.password = finalData.password;
       }
@@ -97,7 +103,15 @@ export const AddUserModal: React.FC = () => {
       }
     } else {
       try {
-        const response = await api.createUser(finalData as Omit<User, 'id'>);
+        const createData: CreateUserData = {
+          nombres: finalData.nombres,
+          apellidos: finalData.apellidos,
+          email: finalData.email,
+          password: finalData.password!, // Already checked for existence above
+          role: finalData.role as any,
+          teacherId: finalData.teacherId
+        };
+        const response = await api.createUser(createData);
         dispatch({ type: ActionType.SAVE_USER, payload: response.data });
         onClose();
       } catch (error) {

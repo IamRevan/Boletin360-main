@@ -22,24 +22,24 @@ export const UpdateUserSchema = z.object({
 
 // Esquema para datos de Estudiantes
 export const StudentSchema = z.object({
-    nacionalidad: z.enum(['V', 'E']), // Venezolano o Extranjero
+    nacionalidad: z.enum(['V', 'E']),
     cedula: z.string().regex(/^\d+$/, "La cédula debe ser numérica"),
-    nombres: z.string().min(1),
-    apellidos: z.string().min(1),
-    email: z.string().email(),
+    nombres: z.string().min(1, "Nombres son requeridos"),
+    apellidos: z.string().min(1, "Apellidos son requeridos"),
+    email: z.string().email().optional().or(z.literal('')).nullable(),
     genero: z.enum(['M', 'F']),
-    fecha_nacimiento: z.string().or(z.date()).optional().nullable(),
-    lugar_nacimiento: z.string().optional(),
-    direccion: z.string().optional(),
-    telefono: z.string().optional(),
-    nombre_representante: z.string().optional(),
-    cedula_representante: z.string().optional(),
-    telefono_representante: z.string().optional(),
-    email_representante: z.string().email().optional().or(z.literal('')),
-    observaciones: z.string().optional(),
-    id_grado: z.number().nullable().optional(),
-    id_seccion: z.number().nullable().optional(),
-    status: z.string().optional(), // e.g., 'Activo', 'Retirado'
+    fechaNacimiento: z.string().or(z.date()).optional().nullable(),
+    lugarNacimiento: z.string().optional().nullable(),
+    direccion: z.string().optional().nullable(),
+    telefono: z.string().optional().nullable(),
+    representante: z.string().optional().nullable(),
+    cedulaR: z.string().optional().nullable(),
+    telefonoR: z.string().optional().nullable(),
+    emailR: z.string().email().optional().or(z.literal('')).nullable(),
+    observaciones: z.string().optional().nullable(),
+    idGrado: z.number().nullable().optional(),
+    idSeccion: z.number().nullable().optional(),
+    status: z.enum(['ACTIVO', 'RETIRADO', 'GRADUADO', 'INACTIVO']).optional(),
 });
 
 // Esquema para datos de Docentes
@@ -58,19 +58,19 @@ export const LoginSchema = z.object({
     password: z.string().min(1),
 });
 
-// Validación de Nota individual (0-20)
-const GradeItemSchema = z.object({
-    nombre: z.string(),
-    nota: z.number().min(0, "La nota mínima es 0").max(20, "La nota máxima es 20"),
-    ponderacion: z.number().min(0).max(100),
+// Evaluation Item Schema
+const EvalItemSchema = z.object({
+    descripcion: z.string(),
+    nota: z.number().min(0).max(20),
+    ponderacion: z.number().min(0).max(100)
 });
 
-// Esquema para sincronización de calificaciones
+// Grade Synchronization Schema
 export const GradeSyncSchema = z.object({
     studentId: z.number(),
     materiaId: z.number(),
-    añoId: z.number(),
-    lapso1: z.array(GradeItemSchema),
-    lapso2: z.array(GradeItemSchema),
-    lapso3: z.array(GradeItemSchema),
+    anoEscolarId: z.number(),
+    lapso1: z.array(EvalItemSchema),
+    lapso2: z.array(EvalItemSchema),
+    lapso3: z.array(EvalItemSchema)
 });

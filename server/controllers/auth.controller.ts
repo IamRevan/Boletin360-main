@@ -23,9 +23,9 @@ export const login = async (req: Request, res: Response) => {
         if (validPassword) {
             // Generar token JWT
             const token = jwt.sign(
-                { id: user.id, email: user.email, role: user.role },
+                { id: user.id, email: user.email, role: user.role, teacherId: user.teacherId },
                 JWT_SECRET,
-                { expiresIn: '365d' }
+                { expiresIn: '15m' }
             );
 
             // Return user info (excluding password)

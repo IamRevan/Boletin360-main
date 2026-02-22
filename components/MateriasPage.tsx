@@ -37,7 +37,7 @@ export const MateriasPage: React.FC = () => {
   // Mostrar diálogo de confirmación
   const onDelete = (materiaId: number) => {
     const materia = materias.find(m => m.id === materiaId);
-    const materiaName = materia ? materia.nombre_materia : 'esta materia';
+    const materiaName = materia ? materia.nombreMateria : 'esta materia';
     setConfirmDialog({ isOpen: true, materiaId, materiaName });
   };
 
@@ -61,7 +61,7 @@ export const MateriasPage: React.FC = () => {
     return materias.filter(materia => {
       const searchLower = searchTerm.toLowerCase();
       return searchTerm === '' ||
-        materia.nombre_materia.toLowerCase().includes(searchLower);
+        materia.nombreMateria.toLowerCase().includes(searchLower);
     });
   }, [materias, searchTerm]);
 

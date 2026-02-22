@@ -1,5 +1,4 @@
 node_modules
-server
 .next
 dist
 .env
@@ -15,4 +14,5 @@ README.md
 Dockerfile
 docker-compose.yml
 nginx
-server
+server/*
+!server/schemas.ts

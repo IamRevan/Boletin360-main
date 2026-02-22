@@ -9,10 +9,10 @@ import { ActionType } from '../state/actions';
 import { api } from '../lib/api';
 
 const initialFormState: Omit<Materia, 'id'> = {
-  nombre_materia: '',
-  id_docente: null,
-  id_grado: null,
-  id_seccion: null,
+  nombreMateria: '',
+  idDocente: null,
+  idGrado: null,
+  idSeccion: null,
 };
 
 // Modal para Crear/Editar Materia
@@ -29,7 +29,12 @@ export const MateriaModal: React.FC = () => {
   // Cargar datos al abrir en modo edición
   useEffect(() => {
     if (isEditing) {
-      setFormData(materiaToEdit);
+      setFormData({
+        nombreMateria: materiaToEdit.nombreMateria,
+        idDocente: materiaToEdit.idDocente,
+        idGrado: materiaToEdit.idGrado,
+        idSeccion: materiaToEdit.idSeccion
+      });
     } else {
       setFormData(initialFormState);
     }
@@ -83,12 +88,12 @@ export const MateriaModal: React.FC = () => {
           <div className="p-6 space-y-6 overflow-y-auto">
             <div>
               <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Nombre de la Materia</label>
-              <input type="text" name="nombre_materia" value={formData.nombre_materia} onChange={handleChange} placeholder="Ej: Química" required className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5" />
+              <input type="text" name="nombreMateria" value={formData.nombreMateria} onChange={handleChange} placeholder="Ej: Química" required className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5" />
             </div>
 
             <div>
               <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Docente a Cargo</label>
-              <select name="id_docente" value={formData.id_docente || ''} onChange={handleNumericChange} className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5">
+              <select name="idDocente" value={formData.idDocente || ''} onChange={handleNumericChange} className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5">
                 <option value="">Seleccione un docente...</option>
                 {teachers.filter(t => t.status === TeacherStatus.ACTIVO).map(t => <option key={t.id} value={t.id}>{t.nombres} {t.apellidos}</option>)}
               </select>
@@ -97,16 +102,25 @@ export const MateriaModal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Grado</label>
-                <select name="id_grado" value={formData.id_grado || ''} onChange={handleNumericChange} className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5">
+                <select name="idGrado" value={formData.idGrado || ''} onChange={handleNumericChange} className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5">
                   <option value="">Seleccione...</option>
-                  {grados.map(g => <option key={g.id_grado} value={g.id_grado}>{g.nombre_grado}</option>)}
+                  {grados.map(g => <option key={g.id} value={g.id}>{g.nombreGrado}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Sección</label>
-                <select name="id_seccion" value={formData.id_seccion || ''} onChange={handleNumericChange} className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5">
+                <select name="idSeccion" value={formData.idSeccion || ''} onChange={handleNumericChange} className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5">
                   <option value="">Seleccione...</option>
-                  {secciones.map(s => <option key={s.id_seccion} value={s.id_seccion}>{s.nombre_seccion}</option>)}
+                  {secciones
+                    .filter(s => s.idGrado === formData.idGrado)
+                    .map(s => {
+                      const grado = grados.find(g => g.id === s.idGrado);
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {grado ? `${grado.nombreGrado} "${s.nombreSeccion}"` : s.nombreSeccion}
+                        </option>
+                      );
+                    })}
                 </select>
               </div>
             </div>

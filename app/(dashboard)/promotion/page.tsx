@@ -26,7 +26,7 @@ export default function PromotionPage() {
     // Filtrar estudiantes del origen
     const sourceStudents = useMemo(() => {
         if (!sourceGradoId || !sourceSeccionId) return [];
-        return students.filter(s => s.id_grado === sourceGradoId && s.id_seccion === sourceSeccionId && s.status === StudentStatus.ACTIVO);
+        return students.filter(s => s.idGrado === sourceGradoId && s.idSeccion === sourceSeccionId && s.status === StudentStatus.ACTIVO);
     }, [students, sourceGradoId, sourceSeccionId]);
 
     // Manejar checkboxes
@@ -69,7 +69,7 @@ export default function PromotionPage() {
                 if (student) {
                     dispatch({
                         type: ActionType.SAVE_STUDENT,
-                        payload: { ...student, id_grado: targetGradoId, id_seccion: targetSeccionId }
+                        payload: { ...student, idGrado: targetGradoId, idSeccion: targetSeccionId }
                     });
                 }
             });
@@ -105,7 +105,7 @@ export default function PromotionPage() {
                                 onChange={e => setSourceGradoId(Number(e.target.value))}
                             >
                                 <option value="" style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>Seleccionar...</option>
-                                {grados.map(g => <option key={g.id_grado} value={g.id_grado} style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>{g.nombre_grado}</option>)}
+                                {grados.map(g => <option key={g.id} value={g.id} style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>{g.nombreGrado}</option>)}
                             </select>
                         </div>
                         <div>
@@ -116,7 +116,9 @@ export default function PromotionPage() {
                                 onChange={e => setSourceSeccionId(Number(e.target.value))}
                             >
                                 <option value="" style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>Seleccionar...</option>
-                                {secciones.map(s => <option key={s.id_seccion} value={s.id_seccion} style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>{s.nombre_seccion}</option>)}
+                                {secciones
+                                    .filter(s => s.idGrado === sourceGradoId)
+                                    .map(s => <option key={s.id} value={s.id} style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>{s.nombreSeccion}</option>)}
                             </select>
                         </div>
                     </div>
@@ -175,7 +177,7 @@ export default function PromotionPage() {
                                     onChange={e => setTargetGradoId(Number(e.target.value))}
                                 >
                                     <option value="" style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>Seleccionar...</option>
-                                    {grados.map(g => <option key={g.id_grado} value={g.id_grado} style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>{g.nombre_grado}</option>)}
+                                    {grados.map(g => <option key={g.id} value={g.id} style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>{g.nombreGrado}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -186,7 +188,9 @@ export default function PromotionPage() {
                                     onChange={e => setTargetSeccionId(Number(e.target.value))}
                                 >
                                     <option value="" style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>Seleccionar...</option>
-                                    {secciones.map(s => <option key={s.id_seccion} value={s.id_seccion} style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>{s.nombre_seccion}</option>)}
+                                    {secciones
+                                        .filter(s => s.idGrado === targetGradoId)
+                                        .map(s => <option key={s.id} value={s.id} style={{ backgroundColor: '#1a1d2d', color: '#d0d2d6' }}>{s.nombreSeccion}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -196,8 +200,8 @@ export default function PromotionPage() {
                         <h3 className="text-white font-bold text-lg mb-2">Resumen de Promoción</h3>
                         <p className="text-moon-text mb-4">
                             Se moverán <strong>{selectedStudentIds.length}</strong> estudiantes <br />
-                            De: <strong>{grados.find(g => g.id_grado === sourceGradoId)?.nombre_grado || '?'} "{secciones.find(s => s.id_seccion === sourceSeccionId)?.nombre_seccion || '?'}"</strong><br />
-                            A: <strong className="text-green-400">{grados.find(g => g.id_grado === targetGradoId)?.nombre_grado || '?'} "{secciones.find(s => s.id_seccion === targetSeccionId)?.nombre_seccion || '?'}"</strong>
+                            De: <strong>{grados.find(g => g.id === sourceGradoId)?.nombreGrado || '?'} "{secciones.find(s => s.id === sourceSeccionId)?.nombreSeccion || '?'}"</strong><br />
+                            A: <strong className="text-green-400">{grados.find(g => g.id === targetGradoId)?.nombreGrado || '?'} "{secciones.find(s => s.id === targetSeccionId)?.nombreSeccion || '?'}"</strong>
                         </p>
                         <button
                             onClick={handlePromote}

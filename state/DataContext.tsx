@@ -38,10 +38,10 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                 const teacherProfile = fullData.teachers.find(t => t.id === userPayload.teacherId);
 
                 if (teacherProfile) {
-                    const teacherMaterias = fullData.materias.filter(m => m.id_docente === teacherProfile.id);
+                    const teacherMaterias = fullData.materias.filter(m => m.idDocente === teacherProfile.id);
                     const teacherMateriaIds = new Set(teacherMaterias.map(m => m.id));
-                    const teacherClasses = new Set(teacherMaterias.map(m => `${m.id_grado}-${m.id_seccion}`));
-                    const teacherStudents = fullData.students.filter(s => teacherClasses.has(`${s.id_grado}-${s.id_seccion}`));
+                    const teacherClasses = new Set(teacherMaterias.map(m => `${m.idGrado}-${m.idSeccion}`));
+                    const teacherStudents = fullData.students.filter(s => teacherClasses.has(`${s.idGrado}-${s.idSeccion}`));
                     const teacherStudentIds = new Set(teacherStudents.map(s => s.id));
 
                     return {
@@ -49,7 +49,7 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                         materias: teacherMaterias,
                         students: teacherStudents,
                         calificaciones: fullData.calificaciones.filter(c =>
-                            teacherStudentIds.has(c.id) && teacherMateriaIds.has(c.id_materia)
+                            teacherStudentIds.has(c.studentId) && teacherMateriaIds.has(c.materiaId)
                         ),
                     };
                 }
@@ -179,52 +179,53 @@ const dataReducer = (state: DataState, action: Action): DataState => {
         case ActionType.SAVE_GRADO: {
             const gradoData = action.payload;
             let updatedGrados;
-            if ('id_grado' in gradoData && state.grados.some(g => g.id_grado === gradoData.id_grado)) {
-                updatedGrados = state.grados.map(g => g.id_grado === (gradoData as Grado).id_grado ? gradoData : g);
+            if ('id' in gradoData && state.grados.some(g => g.id === gradoData.id)) {
+                updatedGrados = state.grados.map(g => g.id === (gradoData as Grado).id ? gradoData : g);
             } else {
-                if ('id_grado' in gradoData) {
+                if ('id' in gradoData) {
                     updatedGrados = [gradoData, ...state.grados];
                 } else {
-                    const newId = Math.max(...state.grados.map(g => g.id_grado), 0) + 1;
-                    updatedGrados = [{ ...gradoData, id_grado: newId } as Grado, ...state.grados];
+                    const newId = Math.max(...state.grados.map(g => g.id), 0) + 1;
+                    updatedGrados = [{ ...gradoData, id: newId } as Grado, ...state.grados];
                 }
             }
             return { ...state, grados: updatedGrados, modalState: initialDataState.modalState };
         }
         case ActionType.DELETE_GRADO: {
-            return { ...state, grados: state.grados.filter(g => g.id_grado !== action.payload) };
+            return { ...state, grados: state.grados.filter(g => g.id !== action.payload) };
         }
 
         // Secciones
         case ActionType.SAVE_SECCION: {
             const seccionData = action.payload;
             let updatedSecciones;
-            if ('id_seccion' in seccionData && state.secciones.some(s => s.id_seccion === seccionData.id_seccion)) {
-                updatedSecciones = state.secciones.map(s => s.id_seccion === (seccionData as Seccion).id_seccion ? seccionData : s);
+            if ('id' in seccionData && state.secciones.some(s => s.id === seccionData.id)) {
+                updatedSecciones = state.secciones.map(s => s.id === (seccionData as Seccion).id ? seccionData : s);
             } else {
-                if ('id_seccion' in seccionData) {
+                if ('id' in seccionData) {
                     updatedSecciones = [seccionData, ...state.secciones];
                 } else {
-                    const newId = Math.max(...state.secciones.map(s => s.id_seccion), 0) + 1;
-                    updatedSecciones = [{ ...seccionData, id_seccion: newId } as Seccion, ...state.secciones];
+                    const newId = Math.max(...state.secciones.map(s => s.id), 0) + 1;
+                    updatedSecciones = [{ ...seccionData, id: newId } as Seccion, ...state.secciones];
                 }
             }
             return { ...state, secciones: updatedSecciones, modalState: initialDataState.modalState };
         }
         case ActionType.DELETE_SECCION: {
-            return { ...state, secciones: state.secciones.filter(s => s.id_seccion !== action.payload) };
+            return { ...state, secciones: state.secciones.filter(s => s.id !== action.payload) };
         }
 
         // Calificaciones
         case ActionType.ADD_EVALUATIONS: {
-            const { studentIds, materiaId, añoId, lapso, evaluations } = action.payload;
+            const { studentIds, materiaId, anoEscolarId, lapso, evaluations } = action.payload;
             const lapsoKey = `lapso${lapso}` as const;
             let newCalificaciones = [...state.calificaciones];
 
             evaluations.forEach(({ descripcion, ponderacion }: any) => {
                 studentIds.forEach((studentId: number) => {
-                    const calificacionIndex = newCalificaciones.findIndex(c => c.id === studentId && c.id_materia === materiaId && c.id_año_escolar === añoId);
-                    const newEvaluation: Evaluacion = {
+                    const calificacionIndex = newCalificaciones.findIndex(c =>
+                        c.studentId === studentId && c.materiaId === materiaId && c.anoEscolarId === anoEscolarId
+                    ); const newEvaluation: Evaluacion = {
                         id: `uuid-${studentId}-${descripcion}-${Date.now()}-${Math.random()}`,
                         descripcion,
                         ponderacion,
@@ -236,7 +237,7 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                             updatedCalificacion[lapsoKey] = [...updatedCalificacion[lapsoKey], newEvaluation];
                             newCalificaciones[calificacionIndex] = updatedCalificacion;
                             api.syncGrades({
-                                studentId, materiaId, añoId,
+                                studentId, materiaId, anoEscolarId,
                                 lapso1: updatedCalificacion.lapso1,
                                 lapso2: updatedCalificacion.lapso2,
                                 lapso3: updatedCalificacion.lapso3
@@ -244,13 +245,13 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                         }
                     } else {
                         const newCalificacion: Calificacion = {
-                            id: studentId, id_materia: materiaId, id_año_escolar: añoId,
+                            id: 0, studentId, materiaId, anoEscolarId, isLocked: false,
                             lapso1: [], lapso2: [], lapso3: [],
                         };
                         newCalificacion[lapsoKey].push(newEvaluation);
                         newCalificaciones.push(newCalificacion);
                         api.syncGrades({
-                            studentId, materiaId, añoId,
+                            studentId, materiaId, anoEscolarId,
                             lapso1: newCalificacion.lapso1,
                             lapso2: newCalificacion.lapso2,
                             lapso3: newCalificacion.lapso3
@@ -261,16 +262,16 @@ const dataReducer = (state: DataState, action: Action): DataState => {
             return { ...state, calificaciones: newCalificaciones, modalState: initialDataState.modalState };
         }
         case ActionType.UPDATE_EVALUATION_GRADE: {
-            const { studentId, materiaId, añoId, lapso, evaluationId, newNota } = action.payload;
+            const { studentId, materiaId, anoEscolarId, lapso, evaluationId, newNota } = action.payload;
             const lapsoKey = `lapso${lapso}` as const;
             const newCalificaciones = state.calificaciones.map(cal => {
-                if (cal.id === studentId && cal.id_materia === materiaId && cal.id_año_escolar === añoId) {
+                if (cal.studentId === studentId && cal.materiaId === materiaId && cal.anoEscolarId === anoEscolarId) {
                     const updatedLapso = cal[lapsoKey].map(ev =>
                         ev.id === evaluationId ? { ...ev, nota: newNota } : ev
                     );
                     const updatedCal = { ...cal, [lapsoKey]: updatedLapso };
                     api.syncGrades({
-                        studentId, materiaId, añoId,
+                        studentId, materiaId, anoEscolarId,
                         lapso1: updatedCal.lapso1,
                         lapso2: updatedCal.lapso2,
                         lapso3: updatedCal.lapso3
@@ -282,13 +283,13 @@ const dataReducer = (state: DataState, action: Action): DataState => {
             return { ...state, calificaciones: newCalificaciones };
         }
         case ActionType.UPSERT_GRADE: {
-            const { studentId, materiaId, añoId, lapso, description, ponderacion, newNota } = action.payload;
+            const { studentId, materiaId, anoEscolarId, lapso, description, ponderacion, newNota } = action.payload;
             const lapsoKey = `lapso${lapso}` as const;
 
             let studentExistsInGrades = false;
 
             let newCalificaciones = state.calificaciones.map(cal => {
-                if (cal.id === studentId && cal.id_materia === materiaId && cal.id_año_escolar === añoId) {
+                if (cal.studentId === studentId && cal.materiaId === materiaId && cal.anoEscolarId === anoEscolarId) {
                     studentExistsInGrades = true;
                     // Check if evaluation exists
                     const existingEvalIndex = cal[lapsoKey].findIndex(ev => ev.descripcion === description);
@@ -311,7 +312,7 @@ const dataReducer = (state: DataState, action: Action): DataState => {
 
                     const updatedCal = { ...cal, [lapsoKey]: updatedLapso };
                     api.syncGrades({
-                        studentId, materiaId, añoId,
+                        studentId, materiaId, anoEscolarId,
                         lapso1: updatedCal.lapso1,
                         lapso2: updatedCal.lapso2,
                         lapso3: updatedCal.lapso3
@@ -330,9 +331,11 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                     nota: newNota
                 };
                 const newCal: Calificacion = {
-                    id: studentId,
-                    id_materia: materiaId,
-                    id_año_escolar: añoId,
+                    id: 0,
+                    studentId,
+                    materiaId,
+                    anoEscolarId,
+                    isLocked: false,
                     lapso1: [],
                     lapso2: [],
                     lapso3: []
@@ -342,7 +345,7 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                 newCalificaciones = [...newCalificaciones, newCal];
 
                 api.syncGrades({
-                    studentId, materiaId, añoId,
+                    studentId, materiaId, anoEscolarId,
                     lapso1: newCal.lapso1,
                     lapso2: newCal.lapso2,
                     lapso3: newCal.lapso3
@@ -352,14 +355,14 @@ const dataReducer = (state: DataState, action: Action): DataState => {
             return { ...state, calificaciones: newCalificaciones };
         }
         case ActionType.DELETE_EVALUATION_COLUMN: {
-            const { materiaId, añoId, lapso, description } = action.payload;
+            const { materiaId, anoEscolarId, lapso, description } = action.payload;
             const lapsoKey = `lapso${lapso}` as const;
             const newCalificaciones = state.calificaciones.map(cal => {
-                if (cal.id_materia === materiaId && cal.id_año_escolar === añoId) {
+                if (cal.materiaId === materiaId && cal.anoEscolarId === anoEscolarId) {
                     const updatedLapso = cal[lapsoKey].filter(ev => ev.descripcion !== description);
                     const updatedCal = { ...cal, [lapsoKey]: updatedLapso };
                     api.syncGrades({
-                        studentId: cal.id, materiaId, añoId,
+                        studentId: cal.studentId, materiaId, anoEscolarId,
                         lapso1: updatedCal.lapso1,
                         lapso2: updatedCal.lapso2,
                         lapso3: updatedCal.lapso3
@@ -463,9 +466,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         if (!socket || !currentUser) return;
 
-        const handleUpdate = () => {
-            console.log("Data updated via WebSocket, refreshing...");
-            // Re-fetch everything (or we could be more specific)
+        const handleUpdate = (payload: any) => {
+            console.log("Data updated via WebSocket, refreshing...", payload);
             const refreshData = async () => {
                 try {
                     const [initialDataRes, announcementsRes, notificationsRes] = await Promise.all([
@@ -474,13 +476,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         api.getNotifications(currentUser.id)
                     ]);
 
-                    dispatch({
-                        type: ActionType.SET_INITIAL_DATA,
-                        payload: {
+                    let partialUpdate = {};
+                    if (!payload || !payload.type) {
+                        partialUpdate = {
                             ...initialDataRes.data,
                             announcements: announcementsRes.data,
                             notifications: notificationsRes.data
+                        };
+                    } else {
+                        switch (payload.type) {
+                            case 'STUDENT': partialUpdate = { students: initialDataRes.data.students }; break;
+                            case 'TEACHER': partialUpdate = { teachers: initialDataRes.data.teachers }; break;
+                            case 'GRADE': partialUpdate = { calificaciones: initialDataRes.data.calificaciones }; break;
+                            case 'ANNOUNCEMENT': partialUpdate = { announcements: announcementsRes.data }; break;
+                            case 'NOTIFICATION': partialUpdate = { notifications: notificationsRes.data }; break;
+                            case 'GRADO': partialUpdate = { grados: initialDataRes.data.grados }; break;
+                            case 'SECCION': partialUpdate = { secciones: initialDataRes.data.secciones }; break;
+                            default: partialUpdate = { ...initialDataRes.data };
                         }
+                    }
+
+                    dispatch({
+                        type: ActionType.SET_INITIAL_DATA,
+                        payload: partialUpdate
                     });
                 } catch (error) {
                     console.error("WebSocket refresh failed", error);

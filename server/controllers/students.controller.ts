@@ -9,29 +9,13 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
     if (!validation.success) {
         return res.status(400).json({ error: validation.error.issues });
     }
-    const { nacionalidad, cedula, nombres, apellidos, email, genero, fecha_nacimiento, id_grado, id_seccion, status, lugar_nacimiento, direccion, telefono, nombre_representante, cedula_representante, telefono_representante, email_representante, observaciones } = validation.data;
     const userId = req.user?.id;
 
     const student = await prisma.student.create({
         data: {
-            nacionalidad,
-            cedula,
-            nombres,
-            apellidos,
-            email,
-            genero,
-            fechaNacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
-            lugarNacimiento: lugar_nacimiento,
-            direccion,
-            telefono,
-            representante: nombre_representante,
-            cedulaR: cedula_representante,
-            telefonoR: telefono_representante,
-            emailR: email_representante,
-            observaciones,
-            idGrado: id_grado,
-            idSeccion: id_seccion,
-            status: status as any // Cast to StudentStatus enum
+            ...validation.data,
+            fechaNacimiento: validation.data.fechaNacimiento ? new Date(validation.data.fechaNacimiento) : null,
+            status: validation.data.status as any
         }
     });
 
@@ -47,30 +31,18 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
 
 export const updateStudent = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { nacionalidad, cedula, nombres, apellidos, email, genero, fecha_nacimiento, id_grado, id_seccion, status, lugar_nacimiento, direccion, telefono, nombre_representante, cedula_representante, telefono_representante, email_representante, observaciones } = req.body;
+    const validation = StudentSchema.safeParse(req.body);
+    if (!validation.success) {
+        return res.status(400).json({ error: validation.error.issues });
+    }
     const userId = req.user?.id;
 
     const student = await prisma.student.update({
         where: { id: Number(id) },
         data: {
-            nacionalidad,
-            cedula,
-            nombres,
-            apellidos,
-            email,
-            genero,
-            fechaNacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
-            lugarNacimiento: lugar_nacimiento,
-            direccion,
-            telefono,
-            representante: nombre_representante,
-            cedulaR: cedula_representante,
-            telefonoR: telefono_representante,
-            emailR: email_representante,
-            observaciones,
-            idGrado: id_grado,
-            idSeccion: id_seccion,
-            status
+            ...validation.data,
+            fechaNacimiento: validation.data.fechaNacimiento ? new Date(validation.data.fechaNacimiento) : null,
+            status: validation.data.status as any
         }
     });
 
@@ -207,9 +179,9 @@ export const getStudentProfile = async (req: Request, res: Response) => {
                 c.ano_escolar_id,
                 a.nombre as ano_nombre,
                 c.lapso1, c.lapso2, c.lapso3,
-                m.nombre_materia,
-                g.nombre_grado,
-                s.nombre_seccion
+                m.nombre_materia as "nombreMateria",
+                g.nombre_grado as "nombreGrado",
+                s.nombre_seccion as "nombreSeccion"
             FROM calificaciones c
             JOIN anos_escolares a ON c.ano_escolar_id = a.id
             JOIN materias m ON c.materia_id = m.id
@@ -228,14 +200,14 @@ export const getStudentProfile = async (req: Request, res: Response) => {
                 yearGroup = {
                     id: row.ano_escolar_id,
                     nombre: row.ano_nombre,
-                    grado: row.nombre_grado,
-                    seccion: row.nombre_seccion,
+                    nombreGrado: row.nombreGrado,
+                    nombreSeccion: row.nombreSeccion,
                     materias: []
                 };
                 historyGrouped.push(yearGroup);
             }
             yearGroup.materias.push({
-                nombre_materia: row.nombre_materia,
+                nombreMateria: row.nombreMateria,
                 lapso1: row.lapso1,
                 lapso2: row.lapso2,
                 lapso3: row.lapso3
@@ -245,7 +217,7 @@ export const getStudentProfile = async (req: Request, res: Response) => {
         res.json({
             student: {
                 ...student,
-                fecha_nacimiento: student.fechaNacimiento ? student.fechaNacimiento.toISOString().split('T')[0] : null
+                fechaNacimiento: student.fechaNacimiento ? student.fechaNacimiento.toISOString().split('T')[0] : null
             },
             history: historyGrouped
         });

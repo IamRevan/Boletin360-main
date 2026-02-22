@@ -8,18 +8,19 @@ import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
 import { api } from '../lib/api';
 
-const initialFormState: Omit<Seccion, 'id_seccion'> = {
-  nombre_seccion: '',
+const initialFormState: Omit<Seccion, 'id'> = {
+  nombreSeccion: '',
+  idGrado: 0,
 };
 
 // Modal para Crear/Edit Sección
 export const AddSeccionModal: React.FC = () => {
-  const { modalState } = useAppState();
+  const { modalState, grados } = useAppState();
   const dispatch = useAppDispatch();
   const seccionToEdit = modalState.data as Seccion | null;
   const isEditing = seccionToEdit !== null;
 
-  const [formData, setFormData] = useState<Omit<Seccion, 'id_seccion'>>(initialFormState);
+  const [formData, setFormData] = useState<Omit<Seccion, 'id'>>(initialFormState);
 
   // Cargar datos en edición
   useEffect(() => {
@@ -32,9 +33,12 @@ export const AddSeccionModal: React.FC = () => {
 
   const onClose = () => dispatch({ type: ActionType.CLOSE_MODAL });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'idGrado' ? Number(value) : value
+    }));
   };
 
   // Enviar cambios
@@ -42,10 +46,13 @@ export const AddSeccionModal: React.FC = () => {
     e.preventDefault();
     try {
       if (isEditing) {
-        await api.updateSeccion(seccionToEdit.id_seccion, formData);
-        dispatch({ type: ActionType.SAVE_SECCION, payload: { ...formData, id_seccion: seccionToEdit.id_seccion } });
+        await api.updateSeccion(seccionToEdit.id, formData);
+        dispatch({ type: ActionType.SAVE_SECCION, payload: { ...formData, id: seccionToEdit.id } as Seccion });
       } else {
-        const response = await api.createSeccion(formData);
+        const response = await api.createSeccion({
+          nombreSeccion: formData.nombreSeccion,
+          idGrado: formData.idGrado
+        });
         dispatch({ type: ActionType.SAVE_SECCION, payload: response.data });
       }
       onClose();
@@ -74,13 +81,27 @@ export const AddSeccionModal: React.FC = () => {
             <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Nombre de la Sección</label>
             <input
               type="text"
-              name="nombre_seccion"
-              value={formData.nombre_seccion}
+              name="nombreSeccion"
+              value={formData.nombreSeccion}
               onChange={handleChange}
               placeholder="Ej: A"
               required
-              className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5"
+              className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5 mb-4"
             />
+
+            <label className="block mb-2 text-sm font-medium text-moon-text-secondary">Grado al que Pertenece</label>
+            <select
+              name="idGrado"
+              value={formData.idGrado || ''}
+              onChange={handleChange}
+              required
+              className="bg-moon-nav border border-moon-border text-moon-text text-sm rounded-lg focus:ring-moon-purple focus:border-moon-purple block w-full p-2.5"
+            >
+              <option value="" disabled>Seleccione un Grado...</option>
+              {grados.map(g => (
+                <option key={g.id} value={g.id}>{g.nombreGrado}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center justify-end p-6 border-t border-moon-border rounded-b-xl space-x-3">
             <button

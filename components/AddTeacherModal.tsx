@@ -6,7 +6,7 @@ import { type Teacher, TeacherStatus } from '../types';
 import { XIcon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
-import { api } from '../lib/api';
+import { api, type TeacherData } from '../lib/api';
 
 const initialFormState: Omit<Teacher, 'id'> = {
   nacionalidad: 'V',
@@ -45,13 +45,16 @@ export const TeacherModal: React.FC = () => {
 
   // Enviar formulario (Crear o Editar)
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    const dataToSave: TeacherData = {
+      ...formData,
+      nacionalidad: formData.nacionalidad as 'V' | 'E'
+    };
     try {
       if (isEditing) {
-        await api.updateTeacher(teacherToEdit.id, formData);
+        await api.updateTeacher(teacherToEdit.id, dataToSave);
         dispatch({ type: ActionType.SAVE_TEACHER, payload: { ...formData, id: teacherToEdit.id } });
       } else {
-        const response = await api.createTeacher(formData);
+        const response = await api.createTeacher(dataToSave);
         dispatch({ type: ActionType.SAVE_TEACHER, payload: response.data });
       }
       onClose();

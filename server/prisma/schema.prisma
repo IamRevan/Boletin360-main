@@ -55,12 +55,13 @@ model User {
 }
 
 model Announcement {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   title     String
   content   String
-  type      String   @default("info") // info, warning, success
-  createdBy Int      @map("created_by") // Admin User ID
-  createdAt DateTime @default(now()) @map("created_at")
+  type      String    @default("info") // info, warning, success
+  createdBy Int       @map("created_by") // Admin User ID
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
   
   @@map("announcements")
 }
@@ -110,13 +111,14 @@ model Student {
 }
 
 model Teacher {
-  id           Int    @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   nacionalidad String
-  cedula       String @unique
+  cedula       String        @unique
   nombres      String
   apellidos    String
   email        String
   status       TeacherStatus @default(ACTIVO)
+  deletedAt    DateTime?     @map("deleted_at")
 
   users     User[]
   materias  Materia[]
@@ -125,11 +127,12 @@ model Teacher {
 }
 
 model Materia {
-  id            Int    @id @default(autoincrement())
-  nombreMateria String @map("nombre_materia")
-  idDocente     Int?   @map("id_docente")
-  idGrado       Int?   @map("id_grado")
-  idSeccion     Int?   @map("id_seccion")
+  id            Int       @id @default(autoincrement())
+  nombreMateria String    @map("nombre_materia")
+  idDocente     Int?      @map("id_docente")
+  idGrado       Int?      @map("id_grado")
+  idSeccion     Int?      @map("id_seccion")
+  deletedAt     DateTime? @map("deleted_at")
 
   docente       Teacher?     @relation(fields: [idDocente], references: [id], onDelete: Restrict)
   grado         Grado?       @relation(fields: [idGrado], references: [id], onDelete: Restrict)
@@ -143,41 +146,51 @@ model Materia {
 }
 
 model Grado {
-  id          Int    @id @default(autoincrement()) @map("id_grado")
-  nombreGrado String @map("nombre_grado")
+  id           Int       @id @default(autoincrement()) @map("id_grado")
+  nombreGrado  String    @map("nombre_grado")
+  anoEscolarId Int?      @map("ano_escolar_id")
+  deletedAt    DateTime? @map("deleted_at")
 
-  students Student[]
-  materias Materia[]
+  anoEscolar   AnosEscolares? @relation(fields: [anoEscolarId], references: [id])
+  secciones    Seccion[]
+  students     Student[]
+  materias     Materia[]
 
   @@map("grados")
 }
 
 model Seccion {
-  id            Int    @id @default(autoincrement()) @map("id_seccion")
-  nombreSeccion String @map("nombre_seccion")
+  id            Int       @id @default(autoincrement()) @map("id_seccion")
+  nombreSeccion String    @map("nombre_seccion")
+  idGrado       Int?      @map("id_grado")
+  deletedAt     DateTime? @map("deleted_at")
 
-  students Student[]
-  materias Materia[]
+  grado         Grado?    @relation(fields: [idGrado], references: [id])
+  students      Student[]
+  materias      Materia[]
 
   @@map("secciones")
 }
 
 model AnosEscolares {
-  id     Int    @id @default(autoincrement())
-  nombre String
+  id        Int       @id @default(autoincrement())
+  nombre    String
+  deletedAt DateTime? @map("deleted_at")
 
   calificaciones Calificacion[]
+  grados         Grado[]
 
   @@map("anos_escolares")
 }
 
 model Calificacion {
-  id           Int     @id @default(autoincrement()) // Surrogate Key for Relations
-  studentId    Int     @map("student_id")
-  materiaId    Int     @map("materia_id")
-  anoEscolarId Int     @map("ano_escolar_id")
+  id           Int       @id @default(autoincrement()) // Surrogate Key for Relations
+  studentId    Int       @map("student_id")
+  materiaId    Int       @map("materia_id")
+  anoEscolarId Int       @map("ano_escolar_id")
   
-  isLocked     Boolean @default(false) @map("is_locked")
+  isLocked     Boolean   @default(false) @map("is_locked")
+  deletedAt    DateTime? @map("deleted_at")
 
   student    Student       @relation(fields: [studentId], references: [id], onDelete: Restrict)
   materia    Materia       @relation(fields: [materiaId], references: [id], onDelete: Restrict)
@@ -199,6 +212,7 @@ model Evaluation {
   descripcion    String
   nota           Decimal      @db.Decimal(5,2)
   ponderacion    Decimal      @db.Decimal(5,2)
+  deletedAt      DateTime?    @map("deleted_at")
   
   calificacion   Calificacion @relation(fields: [calificacionId], references: [id], onDelete: Cascade)
 
