@@ -230,3 +230,25 @@ model AuditLog {
   @@index([userId])
   @@map("audit_logs")
 }
+
+model SystemLog {
+  id        Int      @id @default(autoincrement())
+  level     String   // INFO, DEBUG, ERROR, WARN
+  message   String
+  details   String?  @db.Text
+  userId    Int?     @map("user_id")
+  timestamp DateTime @default(now())
+
+  @@index([level])
+  @@index([timestamp])
+  @@map("system_logs")
+}
+
+model IdempotencyKey {
+  key            String   @id
+  responseStatus Int      @map("response_status")
+  responseBody   String   @map("response_body") // JSON string
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("idempotency_keys")
+}

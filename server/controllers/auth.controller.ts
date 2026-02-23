@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../db';
 import { LoginSchema } from '../schemas';
+import { LogService, LogLevel } from '../services/log.service';
 
 import { config } from '../config';
 
@@ -27,6 +28,10 @@ export const login = async (req: Request, res: Response) => {
                 JWT_SECRET,
                 { expiresIn: '15m' }
             );
+
+            // Perform login success logging
+            LogService.saveLog(LogLevel.INFO, `User logged in: ${user.email}`, { role: user.role }, user.id)
+                .catch(e => console.error('Failed to log login event', e));
 
             // Return user info (excluding password)
             const { password: _, ...userWithoutPassword } = user;

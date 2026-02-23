@@ -115,7 +115,7 @@ export const getBoletin = async (req: Request, res: Response) => {
 
     if (!student) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
-    // Query Aggregated Grades
+    // Query Aggregated Grades starting from materias to include those without grades
     const boletin = await prisma.$queryRaw`
         SELECT 
             m.id as "materiaId",
@@ -129,12 +129,13 @@ export const getBoletin = async (req: Request, res: Response) => {
             g.nombre_grado as "nombreGrado",
             s.nombre_seccion as "nombreSeccion",
             t.nombres as "docenteNombres", t.apellidos as "docenteApellidos"
-        FROM calificaciones c
-        JOIN materias m ON c.materia_id = m.id
+        FROM materias m
+        JOIN students st ON st.id = ${Number(studentId)}
+        LEFT JOIN calificaciones c ON c.materia_id = m.id AND c.student_id = st.id AND c.ano_escolar_id = ${Number(anoEscolarId)}
         JOIN grados g ON m.id_grado = g.id_grado
         LEFT JOIN secciones s ON m.id_seccion = s.id_seccion
         LEFT JOIN teachers t ON m.id_docente = t.id
-        WHERE c.student_id = ${Number(studentId)} AND c.ano_escolar_id = ${Number(anoEscolarId)}
+        WHERE m.id_grado = st.id_grado AND (m.id_seccion IS NULL OR m.id_seccion = st.id_seccion)
     `;
 
     res.json({
@@ -177,8 +178,8 @@ export const getActa = async (req: Request, res: Response) => {
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
                 FROM students st
-                LEFT JOIN calificaciones c ON st.id = c.student_id AND c.ano_escolar_id = ${Number(anoEscolarId)}
-                LEFT JOIN materias m ON c.materia_id = m.id
+                JOIN materias m ON m.id_grado = st.id_grado AND (m.id_seccion IS NULL OR m.id_seccion = st.id_seccion)
+                LEFT JOIN calificaciones c ON st.id = c.student_id AND m.id = c.materia_id AND c.ano_escolar_id = ${Number(anoEscolarId)}
                 WHERE st.id = ${Number(studentId)}
             `;
 
@@ -193,9 +194,10 @@ export const getActa = async (req: Request, res: Response) => {
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
                     (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
                 FROM students st
-                JOIN calificaciones c ON st.id = c.student_id
-                JOIN materias m ON c.materia_id = m.id
-                WHERE c.ano_escolar_id = ${Number(anoEscolarId)} AND st.id_grado = ${Number(gradoId)} AND st.id_seccion = ${Number(seccionId)}
+                CROSS JOIN materias m
+                LEFT JOIN calificaciones c ON st.id = c.student_id AND m.id = c.materia_id AND c.ano_escolar_id = ${Number(anoEscolarId)}
+                WHERE st.id_grado = ${Number(gradoId)} AND st.id_seccion = ${Number(seccionId)}
+                  AND m.id_grado = ${Number(gradoId)} AND (m.id_seccion IS NULL OR m.id_seccion = ${Number(seccionId)})
                 ORDER BY st.apellidos, st.nombres, m.nombre_materia
             `;
         }
@@ -252,9 +254,10 @@ export const exportXlsx = async (req: Request, res: Response) => {
                 (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 2) as lapso2,
                 (SELECT COALESCE(SUM(e.nota * e.ponderacion / 100), 0) FROM evaluations e WHERE e.calificacion_id = c.id AND e.lapso = 3) as lapso3
             FROM students st
-            JOIN calificaciones c ON st.id = c.student_id
-            JOIN materias m ON c.materia_id = m.id
-            WHERE c.ano_escolar_id = ${Number(anoEscolarId)} AND st.id_grado = ${Number(gradoId)} AND st.id_seccion = ${Number(seccionId)}
+            CROSS JOIN materias m
+            LEFT JOIN calificaciones c ON st.id = c.student_id AND m.id = c.materia_id AND c.ano_escolar_id = ${Number(anoEscolarId)}
+            WHERE st.id_grado = ${Number(gradoId)} AND st.id_seccion = ${Number(seccionId)}
+              AND m.id_grado = ${Number(gradoId)} AND (m.id_seccion IS NULL OR m.id_seccion = ${Number(seccionId)})
             ORDER BY st.apellidos, st.nombres, m.nombre_materia
         `;
 
@@ -264,15 +267,24 @@ export const exportXlsx = async (req: Request, res: Response) => {
 
         if (!grado || !seccion || !ano) return res.status(404).json({ error: 'Datos no encontrados' });
 
-        const workbook = new ExcelJS.Workbook();
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=acta.xlsx');
+
+        const options = {
+            stream: res,
+            useStyles: true,
+            useSharedStrings: true
+        };
+
+        const workbook = new ExcelJS.stream.xlsx.WorkbookWriter(options);
         const worksheet = workbook.addWorksheet('Acta de Evaluación');
 
-        worksheet.addRow(['REPÚBLICA BOLIVARIANA DE VENEZUELA']);
-        worksheet.addRow(['MINISTERIO DEL PODER POPULAR PARA LA EDUCACIÓN']);
-        worksheet.addRow(['U.E.N "PEDRO EMILIO COLL"']);
-        worksheet.addRow([`AÑO ESCOLAR: ${ano.nombre}`]);
-        worksheet.addRow([`GRADO: ${grado.nombreGrado}  SECCIÓN: "${seccion.nombreSeccion}"`]);
-        worksheet.addRow([]);
+        worksheet.addRow(['REPÚBLICA BOLIVARIANA DE VENEZUELA']).commit();
+        worksheet.addRow(['MINISTERIO DEL PODER POPULAR PARA LA EDUCACIÓN']).commit();
+        worksheet.addRow(['U.E.N "PEDRO EMILIO COLL"']).commit();
+        worksheet.addRow([`AÑO ESCOLAR: ${ano.nombre}`]).commit();
+        worksheet.addRow([`GRADO: ${grado.nombreGrado}  SECCIÓN: "${seccion.nombreSeccion}"`]).commit();
+        worksheet.addRow([]).commit();
 
         const materiasMap = new Map();
         result.forEach(r => materiasMap.set(r.materiaId, r.nombreMateria));
@@ -282,7 +294,7 @@ export const exportXlsx = async (req: Request, res: Response) => {
         materiasIds.forEach(mid => {
             headerRow.push(materiasMap.get(mid));
         });
-        worksheet.addRow(headerRow);
+        worksheet.addRow(headerRow).commit();
 
         const studentsLink = new Map();
         result.forEach(r => {
@@ -293,7 +305,6 @@ export const exportXlsx = async (req: Request, res: Response) => {
                     materias: {}
                 });
             }
-            // Calculated values directly from SQL
             const final = ((r.lapso1 || 0) + (r.lapso2 || 0) + (r.lapso3 || 0)) / 3;
             studentsLink.get(r.studentId).materias[r.materiaId] = final.toFixed(1);
         });
@@ -303,14 +314,10 @@ export const exportXlsx = async (req: Request, res: Response) => {
             materiasIds.forEach(mid => {
                 row.push(st.materias[mid] || '-');
             });
-            worksheet.addRow(row);
+            worksheet.addRow(row).commit();
         });
 
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', 'attachment; filename=acta.xlsx');
-
-        await workbook.xlsx.write(res);
-        res.end();
+        await workbook.commit();
 
     } catch (err) {
         console.error(err);

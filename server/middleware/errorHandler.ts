@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../logger';
+import { LogService, LogLevel } from '../services/log.service';
 
 interface OperationalError extends Error {
     statusCode?: number;
     isOperational?: boolean;
+    userId?: number;
 }
 
 /**
@@ -15,30 +18,44 @@ export const errorHandler = (
     res: Response,
     next: NextFunction
 ) => {
-    // Log error for debugging with more context
-    const timestamp = new Date().toISOString();
-    console.error(`[ERROR] ${timestamp} - ${req.method} ${req.path}`);
-
-    if (process.env.NODE_ENV === 'development') {
-        if (Object.keys(req.body).length > 0) {
-            console.error('Request Body:', JSON.stringify(req.body, null, 2));
-        }
-        if (Object.keys(req.params).length > 0) {
-            console.error('Request Params:', req.params);
-        }
-        console.error('Error Message:', err.message);
-        console.error('Stack Trace:', err.stack);
-    } else {
-        console.error(`Error: ${err.message}`);
-    }
-
-    // Default error values
     const statusCode = err.statusCode || 500;
-    const message = err.isOperational ? err.message : 'Error interno del servidor';
+    const isOperational = err.isOperational || false;
+
+    // Log error using pino (raw error to console/PM2 logs)
+    logger.error({
+        method: req.method,
+        path: req.path,
+        statusCode,
+        isOperational,
+        error: err.message,
+        stack: err.stack,
+        body: req.body,
+        params: req.params,
+        query: req.query
+    }, `Error in ${req.method} ${req.path}`);
+
+    // Persist error to system logs database
+    LogService.saveLog(
+        LogLevel.ERROR,
+        `HTTP Error: ${err.message}`,
+        {
+            path: req.path,
+            method: req.method,
+            isOperational,
+            stack: err.stack
+        },
+        err.userId
+    ).catch(e => logger.error({ error: e }, 'Failed to persist error log'));
+
+    // Determine user-facing message
+    const message = isOperational ? err.message : 'Error interno del servidor';
 
     res.status(statusCode).json({
         error: message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        ...(process.env.NODE_ENV === 'development' && {
+            stack: err.stack,
+            originalError: err.message
+        })
     });
 };
 

@@ -22,10 +22,15 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
         // In production, this should be an env var
         const socketInstance = io("http://localhost:3001", {
             transports: ["websocket"],
             autoConnect: true,
+            auth: {
+                token: token
+            }
         });
 
         socketInstance.on("connect", () => {

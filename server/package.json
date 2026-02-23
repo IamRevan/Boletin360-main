@@ -9,7 +9,7 @@
     "seed": "node dist/prisma/seed.js",
     "dev": "npx nodemon index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "npx prisma migrate deploy && node dist/index.js"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +28,9 @@
     "jsonwebtoken": "^9.0.3",
     "prisma": "5.22.0",
     "zod": "^4.1.13",
-    "socket.io": "^4.7.4"
+    "socket.io": "^4.7.4",
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

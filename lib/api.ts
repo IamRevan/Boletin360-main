@@ -25,22 +25,74 @@ const axiosInstance = axios.create({
     baseURL: API_URL,
 });
 
-// Interceptor para agregar token de autenticación a las peticiones
+// --- Resilience Logic ---
+
+interface QueuedRequest {
+    id: string; // Idempotency key
+    url: string;
+    method: string;
+    data: any;
+    timestamp: number;
+}
+
+const getOfflineQueue = (): QueuedRequest[] => {
+    if (typeof window === 'undefined') return [];
+    const queue = localStorage.getItem('offline_queue');
+    return queue ? JSON.parse(queue) : [];
+};
+
+const saveOfflineQueue = (queue: QueuedRequest[]) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('offline_queue', JSON.stringify(queue));
+};
+
+const addToQueue = (config: any) => {
+    const queue = getOfflineQueue();
+    // Only queue mutations
+    if (['post', 'put', 'delete'].includes(config.method?.toLowerCase() || '')) {
+        const idempotencyKey = config.headers['Idempotency-Key'] || Math.random().toString(36).substring(7);
+
+        // Avoid duplicates in the queue
+        if (queue.some(r => r.id === idempotencyKey)) return;
+
+        queue.push({
+            id: idempotencyKey,
+            url: config.url || '',
+            method: config.method || 'post',
+            data: config.data,
+            timestamp: Date.now()
+        });
+        saveOfflineQueue(queue);
+        console.log(`[RESILIENCE] Request queued for offline sync: ${config.url}`);
+    }
+};
+
+// Interceptor para agregar token de autenticación e Idempotency-Key
 axiosInstance.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Add Idempotency-Key to non-GET requests if not present
+        if (config.method && ['post', 'put', 'delete'].includes(config.method.toLowerCase())) {
+            if (!config.headers['Idempotency-Key']) {
+                config.headers['Idempotency-Key'] = Math.random().toString(36).substring(7);
+            }
+        }
     }
     return config;
 });
 
-// Interceptor para logs de respuesta y errores
+// Interceptor para logs de respuesta y errores, y manejo de offline
 axiosInstance.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // If a request from the queue succeeds, we should ideally remove it here, 
+        // but the manual flush is cleaner for now.
+        return response;
+    },
     (error) => {
-        // Log detallado de errores para depuración
         const timestamp = new Date().toISOString();
         const url = error.config?.url;
         const method = error.config?.method?.toUpperCase();
@@ -49,6 +101,13 @@ axiosInstance.interceptors.response.use(
 
         console.error(`[API ERROR] ${timestamp} | ${method} ${url} | Status: ${status} | Message: ${message}`);
 
+        // Detect network errors or server downtime (503/504)
+        const isNetworkError = !error.response || [0, 502, 503, 504].includes(error.response.status);
+
+        if (isNetworkError && error.config) {
+            addToQueue(error.config);
+        }
+
         if (error.response?.data?.issues) {
             console.error('Validation Issues:', error.response.data.issues);
         }
@@ -56,6 +115,45 @@ axiosInstance.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+// Sync Logic
+export const flushOfflineQueue = async () => {
+    const queue = getOfflineQueue();
+    if (queue.length === 0) return;
+
+    console.log(`[RESILIENCE] Attempting to flush ${queue.length} queued requests...`);
+    const remaining: QueuedRequest[] = [];
+
+    for (const req of queue) {
+        try {
+            await axiosInstance({
+                url: req.url,
+                method: req.method,
+                data: req.data,
+                headers: { 'Idempotency-Key': req.id }
+            });
+            console.log(`[RESILIENCE] Successfully synced: ${req.url}`);
+        } catch (err: any) {
+            // Keep in queue if it's still a network error
+            const isNetworkError = !err.response || [0, 502, 503, 504].includes(err.response.status);
+            if (isNetworkError) {
+                remaining.push(req);
+            } else {
+                console.error(`[RESILIENCE] Failed to sync ${req.url} with non-retryable error:`, err.message);
+                // For logic errors (400, 401, etc.), we might want to discard or notify user
+            }
+        }
+    }
+
+    saveOfflineQueue(remaining);
+};
+
+// Auto-flush when coming back online
+if (typeof window !== 'undefined') {
+    window.addEventListener('online', flushOfflineQueue);
+    // Also try on startup
+    setTimeout(flushOfflineQueue, 2000);
+}
 
 // Objeto API principal con todos los endpoints del sistema
 export const api = {

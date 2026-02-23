@@ -20,6 +20,7 @@ import { errorHandler } from './middleware/errorHandler';
 
 import { createServer } from 'http';
 import { initSocket } from './socket';
+import { idempotencyMiddleware } from './middleware/idempotency';
 
 const app = express();
 const httpServer = createServer(app);
@@ -28,9 +29,20 @@ const PORT = config.PORT;
 // Middlewares globales
 app.use(cors());
 app.use(express.json());
+app.use(idempotencyMiddleware);
 
 // Rate limiting (aplicado a todas las rutas API)
 app.use('/api', apiLimiter);
+
+// Health Check
+app.get('/health', async (req, res) => {
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        res.json({ status: 'ok', uptime: process.uptime(), database: 'connected' });
+    } catch (e) {
+        res.status(503).json({ status: 'error', database: 'disconnected' });
+    }
+});
 
 // --- RUTAS API ---
 app.use('/api', authRoutes); // login (authLimiter se aplica específicamente en auth.routes si es necesario)
