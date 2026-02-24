@@ -60,7 +60,7 @@ services:
     container_name: boletin360-web
     restart: always
     environment:
-      - NEXT_PUBLIC_API_URL=http://nginx/api
+      - NEXT_PUBLIC_API_URL=/api
       - NODE_ENV=production
     deploy:
       resources:
