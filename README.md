@@ -9,6 +9,8 @@ Samuel Jimenez
 ## Descripción General
 Boletín 360 es una aplicación web integral para la gestión escolar. Permite administrar estudiantes, docentes, materias, secciones, años escolares y calificaciones. El sistema está diseñado con una arquitectura moderna separando el Frontend y el Backend, garantizando escalabilidad y seguridad.
 
+El sistema implementa una arquitectura en capas, adaptada al patrón MVC (Model-View-Controller), con separación estricta entre presentación, lógica de negocio y acceso a datos. Esta estructura modular asegura que los cambios en una capa no afectan directamente a las otras, facilitando el mantenimiento y las pruebas.
+
 El proyecto utiliza una pila de tecnologías robusta y moderna, preparada para producción mediante contenedores:
 
 ### Frontend
@@ -28,8 +30,12 @@ El proyecto utiliza una pila de tecnologías robusta y moderna, preparada para p
 -   **Auditoría**: Sistema de logging de acciones críticas
 
 ### Infraestructura y Despliegue
--   **Containerización**: Docker & Docker Compose
--   **Servidor Web / Proxy**: Nginx (Alpine)
+La aplicación se ejecuta sobre:
+Node.js: Runtime de JavaScript de bajo consumo de recursos.
+Nginx: Servidor web y reverse proxy eficiente que recibe las peticiones HTTP desde los clientes y las reenvía a los procesos Node.js.
+PM2: Gestor de procesos que asegura que la aplicación esté siempre activa, reiniciándose automáticamente en caso de fallo.
+Docker: Contenedores para reproducibilidad y consistencia entre entornos.
+El sistema se despliega en un servidor local on-premises dentro de la red interna de la institución, cumpliendo la restricción de no distribuirse fuera del dominio de la U.E.N. Pedro Emilio Coll.
 -   **Gestor de Procesos**: PM2 (para entornos sin Docker)
 
 ## Características Principales
