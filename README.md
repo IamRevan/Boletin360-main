@@ -72,6 +72,8 @@ Boletin360/
 
 ### Opción A: Ejecución Automática con Docker (Recomendado)
 *Requiere Docker Desktop instalado.*
+> [!TIP]
+> Si eres usuario de **Windows**, consulta la [Guía de Configuración para Windows](WINDOWS_DOCKER_GUIDE.md) para una instalación paso a paso desde cero.
 
 1.  Ejecute el script de inicio en PowerShell:
     ```powershell

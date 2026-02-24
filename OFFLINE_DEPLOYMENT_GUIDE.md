@@ -8,36 +8,33 @@ Dado que el servidor no tiene internet, no podemos ejecutar comandos como `apt i
 
 ## FASE 1: Preparación (En una computadora CON internet)
 
-En esta fase, prepararemos todos los archivos, dependencias e imágenes de contenedores necesarios para llevarlos al servidor offline.
-
 ### 1. Descargar paquetes de instalación de Docker
-En un equipo con Ubuntu/Debian que sí tenga internet, descarga los paquetes `.deb` necesarios para instalar Docker offline:
+Si el servidor Ubuntu está totalmente limpio, descarga los paquetes `.deb` para instalar Docker sin internet:
 ```bash
-mkdir docker-offline-debs
-cd docker-offline-debs
+mkdir -p docker-offline-debs && cd docker-offline-debs
 apt-get download containerd.io docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin
 cd ..
 ```
 
-### 2. Construir y guardar las imágenes de Docker de la aplicación
-En la computadora con internet, colócate en la carpeta raíz del proyecto `Boletin360-main` y construye las imágenes:
+### 2. Automatizar el empaquetado de imágenes
+Hemos creado un script que construye la aplicación, descarga las bases de datos oficiales y guarda todo en un solo archivo comprimido:
+
 ```bash
-# Construir las imágenes de la base de datos, API, Frontend y Nginx
-sudo docker-compose build
-
-# Descargar las imágenes base de Nginx y PostgreSQL
-sudo docker pull postgres:15.8-alpine
-sudo docker pull nginx:1.25-alpine
-
-# Guardar TODAS las imágenes en un archivo comprimido .tar
-sudo docker save -o boletin360-images.tar boletin360-main-api boletin360-main-web postgres:15.8-alpine nginx:1.25-alpine
+# Dar permisos y ejecutar
+chmod +x scripts/package-offline.sh
+./scripts/package-offline.sh
 ```
 
-### 3. Transferir al pendrive (USB)
-Copia a tu memoria USB los siguientes elementos:
-1. La carpeta `docker-offline-debs/` (con los instaladores de Docker).
-2. El archivo de imágenes `boletin360-images.tar`.
-3. Todo el código fuente del proyecto (la carpeta `Boletin360-main`, asegurándote de incluir el archivo `docker-compose.yml` y las carpetas de scripts).
+Esto generará un archivo llamado `boletin360-images-YYYY-MM-DD.tar`.
+
+### 3. Check-list para el Pendrive (USB)
+Asegúrate de copiar estos 3 elementos exactos a tu memoria USB:
+1.  **Código Fuente**: La carpeta completa `Boletin360-main` (incluyendo el archivo `.env`).
+2.  **Imágenes**: El archivo `.tar` generado por el script en el paso anterior.
+3.  **Instaladores**: La carpeta `docker-offline-debs` creada en el paso 1.
+
+> [!IMPORTANT]
+> No olvides el archivo `.env`. Sin él, Docker Compose no sabrá qué contraseñas o rutas usar en el servidor offline.
 
 ---
 
@@ -71,12 +68,18 @@ sudo systemctl start docker
 ```
 
 ### 3. Cargar las Imágenes de Docker
-Carga el archivo `.tar` que contiene las imágenes de la aplicación pre-compiladas:
+Carga el archivo `.tar` que contiene las imágenes pre-empaquetadas:
 ```bash
 cd /opt/boletin360
-sudo docker load -i boletin360-images.tar
+# Carga las imágenes (esto puede tardar unos minutos)
+sudo docker load -i boletin360-images-*.tar
 ```
-Verifica que las imágenes cargaron correctamente: `sudo docker images`
+
+Verifica que las imágenes cargaron correctamente:
+```bash
+sudo docker images
+```
+Deberías ver `boletin360-api`, `boletin360-web`, `postgres` y `nginx` en la lista.
 
 ---
 

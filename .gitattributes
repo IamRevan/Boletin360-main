@@ -1,0 +1,15 @@
+# Handle line endings automatically for users on Windows
+# Force LF for all text files (Docker expects LF)
+* text=auto eol=lf
+
+# Explicitly handle shell scripts
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Ensure binaries stay as-is
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
