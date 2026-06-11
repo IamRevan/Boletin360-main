@@ -48,6 +48,9 @@ export const Sidebar: React.FC<{ setCurrentPage: (page: string) => void, current
         {/* Calificaciones - Todos (Profesor edita, Admin/Control validan) */}
         <NavItem icon={<ClipboardListIcon />} label="Calificaciones" active={currentPage === 'grades'} onClick={() => setCurrentPage('grades')} />
 
+        {/* Asistencia - Todos */}
+        <NavItem icon={<ClipboardListIcon />} label="Asistencia" active={currentPage === 'attendance'} onClick={() => setCurrentPage('attendance')} />
+
         {/* Materias - Admin, Control de Estudios (gestión), Profesor (solo ver) */}
         <NavItem icon={<BookOpenIcon />} label="Materias" active={currentPage === 'courses'} onClick={() => setCurrentPage('courses')} />
 

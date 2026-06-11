@@ -16,6 +16,15 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone',
+  turbopack: {},
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:3001/api/:path*',
+      },
+    ];
+  },
 };
 
 export default withPWA(nextConfig);

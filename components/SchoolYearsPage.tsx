@@ -9,6 +9,8 @@ import { SeccionesTable } from './SeccionesTable';
 import { PlusIcon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
+import { useToast } from '../state/ToastContext';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 
 // Componente Button para pestañas
 const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
@@ -27,6 +29,8 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
 export const SchoolYearsPage: React.FC = () => {
     const { añosEscolares, grados, secciones } = useAppState();
     const dispatch = useAppDispatch();
+    const { addToast } = useToast();
+    const { showConfirm, DialogComponent } = useConfirmDialog();
     const [activeTab, setActiveTab] = useState('years'); // Pestaña activa ('years', 'grades', 'sections')
 
     // --- Handlers para Años Escolares ---
@@ -34,14 +38,18 @@ export const SchoolYearsPage: React.FC = () => {
     const onEditAño = (schoolYear: AñoEscolar) => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.EditSchoolYear, data: schoolYear } });
     const onDeleteAño = async (id: number) => {
         const item = añosEscolares.find(i => i.id === id);
-        if (window.confirm(`¿Está seguro que desea eliminar el año escolar '${item?.nombre}'? Esta acción no se puede deshacer.`)) {
-            try {
-                await api.deleteSchoolYear(id);
-                dispatch({ type: ActionType.DELETE_SCHOOL_YEAR, payload: id });
-            } catch (error) {
-                console.error("Failed to delete school year", error);
-                alert("Error al eliminar año escolar");
-            }
+        const confirmed = await showConfirm({
+            title: 'Eliminar Año Escolar',
+            message: `¿Está seguro que desea eliminar el año escolar '${item?.nombre}'? Esta acción no se puede deshacer.`,
+        });
+        if (!confirmed) return;
+        try {
+            await api.deleteSchoolYear(id);
+            dispatch({ type: ActionType.DELETE_SCHOOL_YEAR, payload: id });
+            addToast('Año escolar eliminado correctamente', 'success');
+        } catch (error) {
+            console.error("Failed to delete school year", error);
+            addToast('Error al eliminar año escolar', 'error');
         }
     };
 
@@ -50,14 +58,18 @@ export const SchoolYearsPage: React.FC = () => {
     const onEditGrado = (grado: Grado) => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.EditGrado, data: grado } });
     const onDeleteGrado = async (id: number) => {
         const item = grados.find(i => i.id === id);
-        if (window.confirm(`¿Está seguro que desea eliminar el grado '${item?.nombreGrado}'? Esto podría afectar a estudiantes y materias asignadas.`)) {
-            try {
-                await api.deleteGrado(id);
-                dispatch({ type: ActionType.DELETE_GRADO, payload: id });
-            } catch (error) {
-                console.error("Failed to delete grade", error);
-                alert("Error al eliminar grado");
-            }
+        const confirmed = await showConfirm({
+            title: 'Eliminar Grado',
+            message: `¿Está seguro que desea eliminar el grado '${item?.nombreGrado}'? Esto podría afectar a estudiantes y materias asignadas.`,
+        });
+        if (!confirmed) return;
+        try {
+            await api.deleteGrado(id);
+            dispatch({ type: ActionType.DELETE_GRADO, payload: id });
+            addToast('Grado eliminado correctamente', 'success');
+        } catch (error) {
+            console.error("Failed to delete grade", error);
+            addToast('Error al eliminar grado', 'error');
         }
     };
 
@@ -66,14 +78,18 @@ export const SchoolYearsPage: React.FC = () => {
     const onEditSeccion = (seccion: Seccion) => dispatch({ type: ActionType.OPEN_MODAL, payload: { modal: ModalType.EditSeccion, data: seccion } });
     const onDeleteSeccion = async (id: number) => {
         const item = secciones.find(i => i.id === id);
-        if (window.confirm(`¿Está seguro que desea eliminar la sección '${item?.nombreSeccion}'? Esto podría afectar a estudiantes y materias asignadas.`)) {
-            try {
-                await api.deleteSeccion(id);
-                dispatch({ type: ActionType.DELETE_SECCION, payload: id });
-            } catch (error) {
-                console.error("Failed to delete section", error);
-                alert("Error al eliminar sección");
-            }
+        const confirmed = await showConfirm({
+            title: 'Eliminar Sección',
+            message: `¿Está seguro que desea eliminar la sección '${item?.nombreSeccion}'? Esto podría afectar a estudiantes y materias asignadas.`,
+        });
+        if (!confirmed) return;
+        try {
+            await api.deleteSeccion(id);
+            dispatch({ type: ActionType.DELETE_SECCION, payload: id });
+            addToast('Sección eliminada correctamente', 'success');
+        } catch (error) {
+            console.error("Failed to delete section", error);
+            addToast('Error al eliminar sección', 'error');
         }
     };
 
@@ -146,6 +162,7 @@ export const SchoolYearsPage: React.FC = () => {
             </div>
 
             <div>{renderContent()}</div>
+            <DialogComponent />
         </div>
     );
 };

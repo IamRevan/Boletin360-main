@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createStudent, updateStudent, deleteStudent, promoteStudents, getStudentProfile } from '../controllers/students.controller';
+import { createStudent, updateStudent, deleteStudent, promoteStudents, getStudentProfile, getStudentsList } from '../controllers/students.controller';
 import { authenticateToken, authorizeRole } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 
@@ -7,6 +7,7 @@ const router = Router();
 
 router.use(authenticateToken);
 
+router.get('/', asyncHandler(getStudentsList));
 router.post('/', authorizeRole(['ADMIN', 'CONTROL_ESTUDIOS', 'DIRECTOR']), asyncHandler(createStudent));
 router.put('/:id', authorizeRole(['ADMIN', 'CONTROL_ESTUDIOS', 'DIRECTOR']), asyncHandler(updateStudent));
 router.delete('/:id', authorizeRole(['ADMIN', 'CONTROL_ESTUDIOS', 'DIRECTOR']), asyncHandler(deleteStudent));

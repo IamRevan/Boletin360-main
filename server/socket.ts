@@ -4,6 +4,10 @@ import jwt from 'jsonwebtoken';
 import { config } from './config';
 import { logger } from './logger';
 
+interface AuthenticatedSocket extends Socket {
+    user?: any;
+}
+
 export let io: SocketIOServer;
 
 export const initSocket = (httpServer: HttpServer) => {
@@ -25,7 +29,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
         try {
             const decoded = jwt.verify(token, config.JWT_SECRET);
-            (socket as any).user = decoded;
+            (socket as AuthenticatedSocket).user = decoded;
             next();
         } catch (err) {
             logger.error({ socketId: socket.id, err }, 'Socket authentication failed');

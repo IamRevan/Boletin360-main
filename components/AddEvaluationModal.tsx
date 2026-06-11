@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { XIcon, PlusIcon, Trash2Icon } from './Icons';
 import { useAppState, useAppDispatch } from '../state/AppContext';
 import { ActionType } from '../state/actions';
@@ -53,9 +53,30 @@ export const AddEvaluationModal: React.FC = () => {
         );
     };
 
+    const { calificaciones } = useAppState();
+
+    const existingWeight = useMemo(() => {
+        if (!info) return 0;
+        const firstStudentId = info.studentIds[0];
+        const existingCal = calificaciones.find(c =>
+            c.studentId === firstStudentId &&
+            c.materiaId === info.materiaId &&
+            c.anoEscolarId === info.añoId
+        );
+        if (!existingCal) return 0;
+        const lapsoKey = `lapso${info.lapso}` as keyof typeof existingCal;
+        const lapsoData = existingCal[lapsoKey];
+        if (!Array.isArray(lapsoData)) return 0;
+        return (lapsoData as Array<{ ponderacion: number }>).reduce((sum, ev) => sum + Number(ev.ponderacion), 0);
+    }, [calificaciones, info]);
+
+    const newTotalWeight = evaluations.reduce((sum, ev) => sum + ev.ponderacion, 0);
+    const combinedWeight = existingWeight + newTotalWeight;
+    const weightExceeds = combinedWeight > 100;
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         const descriptions = new Set<string>();
         for (const ev of evaluations) {
             if (!ev.descripcion.trim()) {
@@ -71,6 +92,11 @@ export const AddEvaluationModal: React.FC = () => {
                 return;
             }
             descriptions.add(ev.descripcion.trim());
+        }
+
+        if (weightExceeds) {
+            alert(`La suma de ponderaciones excede 100%. Peso actual del lapso: ${existingWeight}%, nuevo: ${newTotalWeight}%, total: ${combinedWeight}%.`);
+            return;
         }
 
         const evaluationsToSave = evaluations.map(({ descripcion, ponderacion }) => ({
@@ -154,6 +180,10 @@ export const AddEvaluationModal: React.FC = () => {
                                 <PlusIcon />
                                 <span>Añadir otra evaluación</span>
                             </button>
+                        </div>
+                        <div className={`flex items-center justify-between p-3 rounded-lg text-sm ${weightExceeds ? 'bg-red-500/20 text-red-400' : 'bg-moon-nav text-moon-text-secondary'}`}>
+                            <span>Peso total del lapso:</span>
+                            <span className="font-bold">{existingWeight}% + {newTotalWeight}% = {combinedWeight}% {weightExceeds ? '(Excede el 100%)' : ''}</span>
                         </div>
                     </div>
                     <div className="flex items-center justify-end p-6 border-t border-moon-border rounded-b-xl space-x-3 flex-shrink-0">

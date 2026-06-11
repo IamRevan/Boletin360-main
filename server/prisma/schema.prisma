@@ -104,6 +104,7 @@ model Student {
   grado         Grado?          @relation(fields: [idGrado], references: [id], onDelete: Restrict)
   seccion       Seccion?        @relation(fields: [idSeccion], references: [id], onDelete: Restrict)
   calificaciones Calificacion[]
+  attendance     Attendance[]
 
   @@index([idGrado])
   @@index([idSeccion])
@@ -218,6 +219,23 @@ model Evaluation {
 
   @@index([calificacionId])
   @@map("evaluations")
+}
+
+model Attendance {
+  id          Int      @id @default(autoincrement())
+  studentId   Int      @map("student_id")
+  fecha       DateTime
+  status      String   // PRESENTE, AUSENTE, TARDE, JUSTIFICADO
+  observacion String?  @map("observacion")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, fecha])
+  @@index([studentId])
+  @@index([fecha])
+  @@map("attendance")
 }
 
 model AuditLog {

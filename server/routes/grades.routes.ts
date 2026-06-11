@@ -12,6 +12,7 @@ router.get('/initial-data', asyncHandler(DashboardController.getInitialData));
 
 // Grades
 router.post('/calificaciones/sync', asyncHandler(GradesController.syncGrades));
+router.post('/calificaciones/sync-batch', asyncHandler(GradesController.syncBatchGrades));
 router.post('/calificaciones/lock-status', authorizeRole(['ADMIN', 'CONTROL_ESTUDIOS', 'DIRECTOR']), asyncHandler(GradesController.setLockStatus));
 
 // Reports

@@ -88,8 +88,6 @@ axiosInstance.interceptors.request.use((config) => {
 // Interceptor para logs de respuesta y errores, y manejo de offline
 axiosInstance.interceptors.response.use(
     (response) => {
-        // If a request from the queue succeeds, we should ideally remove it here, 
-        // but the manual flush is cleaner for now.
         return response;
     },
     (error) => {
@@ -100,6 +98,18 @@ axiosInstance.interceptors.response.use(
         const message = error.response?.data?.error || error.message;
 
         console.error(`[API ERROR] ${timestamp} | ${method} ${url} | Status: ${status} | Message: ${message}`);
+
+        // Token expired or invalid — clear session and redirect to login
+        if (status === 401 || status === 403) {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                // Only redirect if not already on login page to avoid redirect loops
+                if (!window.location.pathname.startsWith('/login')) {
+                    window.location.href = '/login';
+                }
+            }
+            return Promise.reject(error);
+        }
 
         // Detect network errors or server downtime (503/504)
         const isNetworkError = !error.response || [0, 502, 503, 504].includes(error.response.status);
@@ -227,6 +237,18 @@ export const api = {
     markAllNotificationsRead: (userId: number) => axiosInstance.put('/notifications/read-all', { userId }),
     deleteNotification: (id: number) => axiosInstance.delete(`/notifications/${id}`),
 
+    // Asistencia
+    getAttendance: (params: { gradoId: number; seccionId: number; fecha: string }) =>
+        axiosInstance.get('/attendance', { params }),
+    saveAttendance: (data: { fecha: string; records: Array<{ studentId: number; status: string; observacion?: string }> }) =>
+        axiosInstance.post('/attendance', data),
+    getStudentAttendanceHistory: (studentId: number, params?: { desde?: string; hasta?: string }) =>
+        axiosInstance.get(`/attendance/student/${studentId}`, { params }),
+    getAttendanceSummary: (params: { gradoId: number; seccionId: number }) =>
+        axiosInstance.get('/attendance/summary', { params }),
+
     // Gestión de Calificaciones
     syncGrades: (data: GradeSyncData) => axiosInstance.post('/calificaciones/sync', data),
+    syncBatchGrades: (data: { materiaId: number; anoEscolarId: number; lapso: number; evaluations: { descripcion: string; ponderacion: number }[]; studentIds: number[] }) =>
+        axiosInstance.post('/calificaciones/sync-batch', data),
 };

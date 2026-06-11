@@ -3,77 +3,132 @@ import { prisma } from '../db';
 import { StudentSchema } from '../schemas';
 import { logAction } from '../services/audit';
 import { AuthRequest } from '../middleware/auth';
+import { logger } from '../logger';
+
+export const getStudentsList = async (req: AuthRequest, res: Response) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 20));
+        const search = (req.query.search as string) || '';
+        const gradoId = req.query.gradoId ? parseInt(req.query.gradoId as string) : undefined;
+        const seccionId = req.query.seccionId ? parseInt(req.query.seccionId as string) : undefined;
+
+        const where: any = { deletedAt: null };
+        if (gradoId) where.idGrado = gradoId;
+        if (seccionId) where.idSeccion = seccionId;
+        if (search) {
+            const terms = search.split(' ').filter(Boolean);
+            where.AND = terms.map(term => ({
+                OR: [
+                    { nombres: { contains: term, mode: 'insensitive' } },
+                    { apellidos: { contains: term, mode: 'insensitive' } },
+                    { cedula: { contains: term, mode: 'insensitive' } }
+                ]
+            }));
+        }
+
+        const [total, students] = await Promise.all([
+            prisma.student.count({ where }),
+            prisma.student.findMany({
+                where,
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+                orderBy: [{ apellidos: 'asc' }, { nombres: 'asc' }]
+            })
+        ]);
+
+        res.json({
+            students: students.map(s => ({
+                ...s,
+                fechaNacimiento: s.fechaNacimiento ? s.fechaNacimiento.toISOString().split('T')[0] : null
+            })),
+            total,
+            page,
+            pageSize,
+            totalPages: Math.ceil(total / pageSize)
+        });
+    } catch (err) {
+        logger.error({ err }, 'Error listing students');
+        res.status(500).json({ error: 'Error al listar estudiantes' });
+    }
+};
 
 export const createStudent = async (req: AuthRequest, res: Response) => {
-    const validation = StudentSchema.safeParse(req.body);
-    if (!validation.success) {
-        return res.status(400).json({ error: validation.error.issues });
-    }
-    const userId = req.user?.id;
-
-    const student = await prisma.student.create({
-        data: {
-            ...validation.data,
-            fechaNacimiento: validation.data.fechaNacimiento ? new Date(validation.data.fechaNacimiento) : null,
-            status: validation.data.status as any
+    try {
+        const validation = StudentSchema.safeParse(req.body);
+        if (!validation.success) {
+            return res.status(400).json({ error: validation.error.issues });
         }
-    });
+        const userId = req.user?.id;
 
-    await logAction(userId, 'CREATE_STUDENT', `Created student ${student.nombres} ${student.apellidos}`);
+        const student = await prisma.student.create({
+            data: {
+                ...validation.data,
+                fechaNacimiento: validation.data.fechaNacimiento ? new Date(validation.data.fechaNacimiento) : null,
+            }
+        });
 
-    // Emit Socket Event
-    const { getIO } = require('../socket');
-    const io = getIO();
-    io.emit('data_updated', { type: 'STUDENT', id: student.id });
+        await logAction(userId, 'CREATE_STUDENT', `Created student ${student.nombres} ${student.apellidos}`);
 
-    res.json(student);
+        const { getIO } = require('../socket');
+        getIO().emit('data_updated', { type: 'STUDENT', id: student.id });
+
+        res.json(student);
+    } catch (err) {
+        logger.error({ err }, 'Error creating student');
+        res.status(500).json({ error: 'Error al crear el estudiante' });
+    }
 };
 
 export const updateStudent = async (req: AuthRequest, res: Response) => {
-    const { id } = req.params;
-    const validation = StudentSchema.safeParse(req.body);
-    if (!validation.success) {
-        return res.status(400).json({ error: validation.error.issues });
-    }
-    const userId = req.user?.id;
-
-    const student = await prisma.student.update({
-        where: { id: Number(id) },
-        data: {
-            ...validation.data,
-            fechaNacimiento: validation.data.fechaNacimiento ? new Date(validation.data.fechaNacimiento) : null,
-            status: validation.data.status as any
+    try {
+        const { id } = req.params;
+        const validation = StudentSchema.safeParse(req.body);
+        if (!validation.success) {
+            return res.status(400).json({ error: validation.error.issues });
         }
-    });
+        const userId = req.user?.id;
 
-    await logAction(userId, 'UPDATE_STUDENT', `Updated student ID ${id}`);
+        const student = await prisma.student.update({
+            where: { id: Number(id) },
+            data: {
+                ...validation.data,
+                fechaNacimiento: validation.data.fechaNacimiento ? new Date(validation.data.fechaNacimiento) : null,
+            }
+        });
 
-    // Emit Socket Event
-    const { getIO } = require('../socket');
-    const io = getIO();
-    io.emit('data_updated', { type: 'STUDENT', id: student.id });
+        await logAction(userId, 'UPDATE_STUDENT', `Updated student ID ${id}`);
 
-    res.json(student);
+        const { getIO } = require('../socket');
+        getIO().emit('data_updated', { type: 'STUDENT', id: student.id });
+
+        res.json(student);
+    } catch (err) {
+        logger.error({ err }, 'Error updating student');
+        res.status(500).json({ error: 'Error al actualizar el estudiante' });
+    }
 };
 
 export const deleteStudent = async (req: AuthRequest, res: Response) => {
-    const { id } = req.params;
-    const userId = req.user?.id;
+    try {
+        const { id } = req.params;
+        const userId = req.user?.id;
 
-    // Soft delete
-    await prisma.student.update({
-        where: { id: Number(id) },
-        data: { deletedAt: new Date() }
-    });
+        await prisma.student.update({
+            where: { id: Number(id) },
+            data: { deletedAt: new Date() }
+        });
 
-    await logAction(userId, 'DELETE_STUDENT', `Deleted student ID ${id} (Soft Delete)`);
+        await logAction(userId, 'DELETE_STUDENT', `Deleted student ID ${id} (Soft Delete)`);
 
-    // Emit Socket Event
-    const { getIO } = require('../socket');
-    const io = getIO();
-    io.emit('data_updated', { type: 'STUDENT', id: Number(id) });
+        const { getIO } = require('../socket');
+        getIO().emit('data_updated', { type: 'STUDENT', id: Number(id) });
 
-    res.json({ success: true });
+        res.json({ success: true });
+    } catch (err) {
+        logger.error({ err }, 'Error deleting student');
+        res.status(500).json({ error: 'Error al eliminar el estudiante' });
+    }
 };
 
 export const promoteStudents = async (req: AuthRequest, res: Response) => {
@@ -101,7 +156,7 @@ export const promoteStudents = async (req: AuthRequest, res: Response) => {
 
         res.json({ success: true, message: `${studentIds.length} estudiantes promovidos con éxito.` });
     } catch (err) {
-        console.error('Error en promoción masiva:', err);
+        logger.error({ err }, 'Error en promoción masiva');
         res.status(500).json({ error: 'Error al promover estudiantes' });
     }
 };
@@ -118,99 +173,45 @@ export const getStudentProfile = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Estudiante no encontrado' });
         }
 
-        // Fetch history using Prisma relations
-        // Assuming Calificacion has relations to AnosEscolares, Materia (and Materia to Grado/Seccion)
-        // Check schema.prisma to be sure relations are defined. 
-        // Based on Step 27 schema, relations are implicit via foreign keys but maybe not fully relational in Prisma Model yet??
-        // Wait, Step 27 schema has fields: `anoEscolarId`, `materiaId`.
-        // BUT it does NOT have relation fields like `materia Materia @relation(...)`.
-        // I need to update schema.prisma to include relations OR use manual joins? 
-        // Actually, if I didn't update schema.prisma to add relations, I CANNOT use `include`.
-        // The current schema just has scalar fields.
+        const calificaciones = await prisma.calificacion.findMany({
+            where: { studentId: Number(id) },
+            include: {
+                materia: {
+                    include: {
+                        grado: true,
+                        seccion: true
+                    }
+                },
+                anoEscolar: true,
+                evaluations: true
+            }
+        });
 
-        // CRITICAL: The user asked to "activate Prisma". A proper Prisma usage involves relations.
-        // However, updating Schema relations involves editing schema.prisma heavily.
-        // If I stick to the current schema (raw mapping), I have to do separate queries or findRaw (if mongo, but this is SQL).
-        // Since I want to deliver quality, I SHOULD add relations to schema.prisma.
-        // But the user didn't explicitly ask for schema changes, just "activate Prisma".
-        // Adding relations is non-breaking for DB structure (virtual in Prisma level), so I SHOULD do it.
-        // BUT, I already generated the client based on the RAW schema.
+        const evalToObj = (e: { id: number; descripcion: string; nota: import('@prisma/client/runtime/library').Decimal; ponderacion: import('@prisma/client/runtime/library').Decimal }) => ({
+            id: String(e.id),
+            descripcion: e.descripcion,
+            nota: Number(e.nota),
+            ponderacion: Number(e.ponderacion)
+        });
 
-        // For now, I will simulate the joins or just use raw queries via `prisma.$queryRaw` if I want to save time, 
-        // OR better: Update schema.prisma to have relations.
-        // Updating schema.prisma is the right way.
-
-        // Let's pause `students.controller.ts` creation to Update `schema.prisma` first? 
-        // No, I will write the controller assuming relations EXIST, and then I will update `schema.prisma`.
-        // Actually, I can't "assume" because TS will scream if I generate client later.
-
-        // Let's look at the schema again (Step 27).
-        // It has `@@map` but no `@relation`.
-        // I should update `schema.prisma` to include relations. 
-
-        // For now, to avoid getting stuck in a huge Schema Loop, I will just use `prisma.calificacion.findMany` and then manually fetch referenced data 
-        // OR use `prisma.$queryRaw` for this complex profile query if I don't want to touch schema.
-        // BUT, `prisma.$queryRaw` defeats the purpose of "Typing".
-
-        // Decision: I will update `schema.prisma` to add relations. It allows for `include`.
-        // I will do that in the NEXT step. For now, I'll write the controller assuming I WILL add relations.
-        // Wait, if I write code now that relies on relations, and the client isn't generated with them, I can't verify.
-
-        // Alternative: separate queries.
-        // 1. Get grades. 2. Get subjects for those grades. 3. Get years.
-        // That's N+1 unless careful.
-        // Given the timeline, I will use `prisma.$queryRaw` for the Profile "History" part to keep it efficient without managing 20 relations right now,
-        // OR simply implement relations. Relations are easy.
-
-        // I'll add relations to schema.prisma now.
-
-        // Wait, if I edit schema.prisma now, I have to re-generate client.
-        // I'll add a task for that.
-
-        // I'll write the `getStudentProfile` using separate queries for now to be safe and robust, 
-        // or just minimal relations.
-
-        // Actually, raw query is safest for complex joins if relations aren't set up.
-        // query: `SELECT ... FROM calificaciones c JOIN ...`
-        // `prisma.$queryRaw\`...\``
-
-        const history = await prisma.$queryRaw`
-            SELECT 
-                c.ano_escolar_id,
-                a.nombre as ano_nombre,
-                c.lapso1, c.lapso2, c.lapso3,
-                m.nombre_materia as "nombreMateria",
-                g.nombre_grado as "nombreGrado",
-                s.nombre_seccion as "nombreSeccion"
-            FROM calificaciones c
-            JOIN anos_escolares a ON c.ano_escolar_id = a.id
-            JOIN materias m ON c.materia_id = m.id
-            JOIN grados g ON m.id_grado = g.id_grado
-            LEFT JOIN secciones s ON m.id_seccion = s.id_seccion
-            WHERE c.student_id = ${Number(id)}
-            ORDER BY a.nombre DESC
-        `;
-
-        // Grouping logic (same as original)
-        // ...
         const historyGrouped: any[] = [];
-        (history as any[]).forEach((row: any) => {
-            let yearGroup = historyGrouped.find(h => h.id === row.ano_escolar_id);
+        calificaciones.forEach(c => {
+            let yearGroup = historyGrouped.find(h => h.id === c.anoEscolarId);
             if (!yearGroup) {
                 yearGroup = {
-                    id: row.ano_escolar_id,
-                    nombre: row.ano_nombre,
-                    nombreGrado: row.nombreGrado,
-                    nombreSeccion: row.nombreSeccion,
+                    id: c.anoEscolarId,
+                    nombre: c.anoEscolar.nombre,
+                    nombreGrado: c.materia.grado?.nombreGrado || '',
+                    nombreSeccion: c.materia.seccion?.nombreSeccion || '',
                     materias: []
                 };
                 historyGrouped.push(yearGroup);
             }
             yearGroup.materias.push({
-                nombreMateria: row.nombreMateria,
-                lapso1: row.lapso1,
-                lapso2: row.lapso2,
-                lapso3: row.lapso3
+                nombreMateria: c.materia.nombreMateria,
+                lapso1: c.evaluations.filter(e => e.lapso === 1).map(evalToObj),
+                lapso2: c.evaluations.filter(e => e.lapso === 2).map(evalToObj),
+                lapso3: c.evaluations.filter(e => e.lapso === 3).map(evalToObj)
             });
         });
 
@@ -223,7 +224,7 @@ export const getStudentProfile = async (req: Request, res: Response) => {
         });
 
     } catch (err) {
-        console.error(err);
+        logger.error({ err }, 'Error');
         res.status(500).json({ error: 'Error al obtener perfil del estudiante' });
     }
 };

@@ -6,40 +6,37 @@ import { LoginSchema } from '../schemas';
 import { LogService, LogLevel } from '../services/log.service';
 
 import { config } from '../config';
+import { logger } from '../logger';
 
 const JWT_SECRET = config.JWT_SECRET;
 
 export const login = async (req: Request, res: Response) => {
-    // Datos ya validados por middleware
-    const { email, password } = req.body;
+    try {
+        const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({
-        where: { email }
-    });
+        const user = await prisma.user.findUnique({ where: { email } });
 
-    if (user) {
-        // Verificar contraseña con bcrypt
-        const validPassword = await bcrypt.compare(password, user.password);
+        if (user) {
+            const validPassword = await bcrypt.compare(password, user.password);
 
-        if (validPassword) {
-            // Generar token JWT
-            const token = jwt.sign(
-                { id: user.id, email: user.email, role: user.role, teacherId: user.teacherId },
-                JWT_SECRET,
-                { expiresIn: '15m' }
-            );
+            if (validPassword) {
+                const token = jwt.sign(
+                    { id: user.id, email: user.email, role: user.role, teacherId: user.teacherId },
+                    JWT_SECRET,
+                    { expiresIn: '8h' }
+                );
 
-            // Perform login success logging
-            LogService.saveLog(LogLevel.INFO, `User logged in: ${user.email}`, { role: user.role }, user.id)
-                .catch(e => console.error('Failed to log login event', e));
+                LogService.saveLog(LogLevel.INFO, `User logged in: ${user.email}`, { role: user.role }, user.id)
+                    .catch(e => logger.error({ err: e }, 'Failed to log login event'));
 
-            // Return user info (excluding password)
-            const { password: _, ...userWithoutPassword } = user;
-            res.json({ ...userWithoutPassword, teacherId: user.teacherId, token });
-        } else {
-            res.status(401).json({ error: 'Credenciales inválidas' });
+                const { password: _, ...userWithoutPassword } = user;
+                return res.json({ ...userWithoutPassword, teacherId: user.teacherId, token });
+            }
         }
-    } else {
+
         res.status(401).json({ error: 'Credenciales inválidas' });
+    } catch (err) {
+        logger.error({ err }, 'Error during login');
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 };

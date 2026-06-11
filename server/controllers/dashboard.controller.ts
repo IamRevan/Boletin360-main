@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../db';
 import { AuthRequest } from '../middleware/auth';
+import { logger } from '../logger';
 
 export const getInitialData = async (req: AuthRequest, res: Response) => {
     try {
@@ -11,7 +12,9 @@ export const getInitialData = async (req: AuthRequest, res: Response) => {
         const grados = await prisma.grado.findMany();
         const secciones = await prisma.seccion.findMany();
         const anosEscolares = await prisma.anosEscolares.findMany();
-        const calificaciones = await prisma.calificacion.findMany();
+        const calificaciones = await prisma.calificacion.findMany({
+            include: { evaluations: true }
+        });
 
         const userId = req.user?.id;
         // In Prisma, we might need to query the current User separately or filter from users array found above.
@@ -56,9 +59,30 @@ export const getInitialData = async (req: AuthRequest, res: Response) => {
             materiaId: c.materiaId,
             anoEscolarId: c.anoEscolarId,
             isLocked: c.isLocked,
-            lapso1: [], // Evaluations are fetched separately or synced
-            lapso2: [],
-            lapso3: []
+            lapso1: c.evaluations
+                .filter(e => e.lapso === 1)
+                .map(e => ({
+                    id: String(e.id),
+                    descripcion: e.descripcion,
+                    nota: Number(e.nota),
+                    ponderacion: Number(e.ponderacion)
+                })),
+            lapso2: c.evaluations
+                .filter(e => e.lapso === 2)
+                .map(e => ({
+                    id: String(e.id),
+                    descripcion: e.descripcion,
+                    nota: Number(e.nota),
+                    ponderacion: Number(e.ponderacion)
+                })),
+            lapso3: c.evaluations
+                .filter(e => e.lapso === 3)
+                .map(e => ({
+                    id: String(e.id),
+                    descripcion: e.descripcion,
+                    nota: Number(e.nota),
+                    ponderacion: Number(e.ponderacion)
+                }))
         }));
 
         const formatUsers = users.map(u => ({
@@ -85,7 +109,7 @@ export const getInitialData = async (req: AuthRequest, res: Response) => {
             calificaciones: formatCalificaciones,
         });
     } catch (err) {
-        console.error(err);
+        logger.error({ err }, 'Error');
         res.status(500).json({ error: 'Error al obtener datos iniciales' });
     }
 };

@@ -11,12 +11,14 @@ import academicRoutes from './routes/academic.routes';
 import gradesRoutes from './routes/grades.routes';
 import announcementRoutes from './routes/announcements.routes';
 import notificationRoutes from './routes/notifications.routes';
+import attendanceRoutes from './routes/attendance.routes';
 
 // ... (other imports)
 
 import auditRoutes from './routes/audit.routes';
 import { apiLimiter, authLimiter } from './middleware/rateLimit';
 import { errorHandler } from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
 
 import { createServer } from 'http';
 import { initSocket } from './socket';
@@ -30,6 +32,9 @@ const PORT = config.PORT;
 app.use(cors());
 app.use(express.json());
 app.use(idempotencyMiddleware);
+
+// Request logging (aplicado a todas las rutas)
+app.use(requestLogger);
 
 // Rate limiting (aplicado a todas las rutas API)
 app.use('/api', apiLimiter);
@@ -53,6 +58,7 @@ app.use('/api', academicRoutes); // Mounted at /api because it contains /grados,
 app.use('/api', gradesRoutes);   // Mounted at /api because it contains /initial-data, /reports
 app.use('/api', announcementRoutes);
 app.use('/api', notificationRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // Error handler (debe ser el último middleware)
 app.use(errorHandler);

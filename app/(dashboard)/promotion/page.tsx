@@ -6,8 +6,12 @@ import { api } from '@/lib/api';
 import { ActionType } from '@/state/actions';
 import { LayersIcon, ArrowRightIcon, CheckCircleIcon, UsersIcon } from '@/components/Icons';
 import { StudentStatus } from '@/types';
+import { useToast } from '@/state/ToastContext';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function PromotionPage() {
+    const { addToast } = useToast();
+    const { showConfirm, DialogComponent } = useConfirmDialog();
     const { students, grados, secciones } = useAppState();
     const dispatch = useAppDispatch();
 
@@ -50,9 +54,12 @@ export default function PromotionPage() {
     const handlePromote = async () => {
         if (selectedStudentIds.length === 0 || !targetGradoId || !targetSeccionId) return;
 
-        if (!confirm(`¿Está seguro de promover a ${selectedStudentIds.length} estudiantes? Esta acción actualizará su grado y sección actual.`)) {
-            return;
-        }
+        const confirmed = await showConfirm({
+            title: 'Promover Estudiantes',
+            message: `¿Está seguro de promover a ${selectedStudentIds.length} estudiantes? Esta acción actualizará su grado y sección actual.`,
+            variant: 'warning'
+        });
+        if (!confirmed) return;
 
         setIsPromoting(true);
         try {
@@ -62,8 +69,6 @@ export default function PromotionPage() {
                 targetSeccionId
             });
 
-            // Actualizar estado local (Optimistic Update o Refetch)
-            // Para simplicidad, hacemos update local de los estudiantes afectados
             selectedStudentIds.forEach(id => {
                 const student = students.find(s => s.id === id);
                 if (student) {
@@ -74,12 +79,11 @@ export default function PromotionPage() {
                 }
             });
 
-            alert("Promoción realizada con éxito.");
+            addToast(`${selectedStudentIds.length} estudiantes promovidos con éxito.`, 'success');
             setSelectedStudentIds([]);
-            // Opcional: Limpiar filtros
         } catch (error) {
             console.error("Error promoting students", error);
-            alert("Error al promover estudiantes.");
+            addToast('Error al promover estudiantes.', 'error');
         } finally {
             setIsPromoting(false);
         }
@@ -217,6 +221,7 @@ export default function PromotionPage() {
                     </div>
                 </div>
             </div>
+            <DialogComponent confirmText="Promover" cancelText="Cancelar" />
         </div>
     );
 }

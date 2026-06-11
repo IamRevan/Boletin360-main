@@ -15,6 +15,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const { users } = useAppState();
     const dispatch = useAppDispatch();
@@ -22,13 +23,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        console.log('Attempting login with:', { email, passwordLength: password.length });
+        setIsLoading(true);
         try {
             const response = await api.login({ email, password });
             const user = response.data;
             dispatch({ type: ActionType.LOGIN_SUCCESS, payload: user });
 
-            // Fetch initial data now that we have a token (since initial load failed or was skipped)
             try {
                 const dataResponse = await api.getInitialData();
                 dispatch({ type: ActionType.SET_INITIAL_DATA, payload: dataResponse.data });
@@ -40,6 +40,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         } catch (err) {
             console.error(err);
             setError('Email o contraseña incorrectos.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -99,10 +101,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                         <div>
                             <button
                                 type="submit"
-                                onClick={() => console.log('Login button clicked')}
-                                className="w-full bg-moon-purple hover:bg-moon-purple-light text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 cursor-pointer relative z-20"
+                                disabled={isLoading}
+                                className="w-full bg-moon-purple hover:bg-moon-purple-light disabled:bg-moon-border disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 cursor-pointer relative z-20 flex items-center justify-center"
                             >
-                                Iniciar Sesión
+                                {isLoading ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Iniciando Sesión...
+                                    </>
+                                ) : 'Iniciar Sesión'}
                             </button>
                         </div>
                     </form>

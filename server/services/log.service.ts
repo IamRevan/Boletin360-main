@@ -13,7 +13,7 @@ export class LogService {
         try {
             // In a real "separate database" scenario, we'd use a different prisma client or sqlite.
             // For now, we use the SystemLog table in the main DB to ensure it works across the docker setup.
-            await (prisma as any).systemLog.create({
+            await prisma.systemLog.create({
                 data: {
                     level,
                     message,

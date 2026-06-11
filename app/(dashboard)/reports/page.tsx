@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppState } from '@/state/AppContext';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { PrinterIcon, SearchIcon, FileTextIcon, DownloadIcon } from '@/components/Icons';
 import { ConstanciaReport } from '@/components/reports/ConstanciaReport';
 import { ResumenReport } from '@/components/reports/ResumenReport';
+import { generateBoletinPDF, generateResumenPDF, generateConstanciaPDF } from '@/lib/pdfGenerator';
+import JSZip from 'jszip';
 
 type ReportType = 'boletin' | 'acta' | 'resumen';
 
@@ -76,6 +78,19 @@ export default function ReportsPage() {
         window.print();
     };
 
+    const handleDownloadPDF = () => {
+        if (!reportData) return;
+        if (reportType === 'boletin') {
+            generateBoletinPDF(reportData);
+        } else if (reportType === 'resumen') {
+            generateResumenPDF(reportData);
+        } else if (reportType === 'acta') {
+            generateConstanciaPDF(reportData);
+        } else {
+            window.print();
+        }
+    };
+
     const handleDownloadExcel = async () => {
         if (!selectedAnoId || !selectedGradoId || !selectedSeccionId) return;
 
@@ -99,6 +114,41 @@ export default function ReportsPage() {
         } catch (error) {
             console.error("Error downloading excel", error);
             alert("Error al descargar el archivo Excel.");
+        }
+    };
+
+    const handleDownloadAllPDFs = async () => {
+        if (!reportData || reportType !== 'resumen') return;
+
+        try {
+            const zip = new JSZip();
+            const folder = zip.folder('constancias')!;
+
+            const promises = reportData.acta.map(async (student: any) => {
+                // Create single-student data for the constancia generator
+                const singleData = {
+                    grado: reportData.grado,
+                    seccion: reportData.seccion,
+                    anoEscolar: reportData.anoEscolar,
+                    acta: [student]
+                };
+                const blob = generateConstanciaPDF(singleData, true) as Blob;
+                folder.file(`constancia_${student.cedula}.pdf`, blob);
+            });
+
+            await Promise.all(promises);
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+            const url = window.URL.createObjectURL(zipBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `constancias_${reportData.anoEscolar?.nombre || 'reporte'}.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Error generating mass PDFs", error);
+            alert("Error al generar los PDFs.");
         }
     };
 
@@ -279,21 +329,37 @@ export default function ReportsPage() {
                 <div className="animate-fade-in pb-10">
                     {/* Botonera Flotante */}
                     <div className="flex justify-end mb-4 print:hidden gap-2">
+                        <button
+                            onClick={handleDownloadPDF}
+                            className="flex items-center bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
+                        >
+                            <DownloadIcon />
+                            <span className="ml-2">PDF</span>
+                        </button>
                         {reportType === 'resumen' && (
-                            <button
-                                onClick={handleDownloadExcel}
-                                className="flex items-center bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
-                            >
-                                <DownloadIcon />
-                                <span className="ml-2">Excel (XLSX)</span>
-                            </button>
+                            <>
+                                <button
+                                    onClick={handleDownloadExcel}
+                                    className="flex items-center bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
+                                >
+                                    <DownloadIcon />
+                                    <span className="ml-2">Excel (XLSX)</span>
+                                </button>
+                                <button
+                                    onClick={handleDownloadAllPDFs}
+                                    className="flex items-center bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
+                                >
+                                    <DownloadIcon />
+                                    <span className="ml-2">Todos los PDFs</span>
+                                </button>
+                            </>
                         )}
                         <button
                             onClick={handlePrint}
                             className="flex items-center bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
                         >
                             <PrinterIcon />
-                            <span className="ml-2">Imprimir PDF</span>
+                            <span className="ml-2">Imprimir</span>
                         </button>
                     </div>
 

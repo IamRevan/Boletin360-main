@@ -7,6 +7,7 @@
     "test": "jest",
     "stress": "node dist/tests/stress-test.js",
     "seed": "node dist/prisma/seed.js",
+    "seed:students": "npx ts-node prisma/seed-test-students.ts",
     "dev": "npx nodemon index.ts",
     "build": "tsc",
     "start": "npx prisma migrate deploy && node dist/index.js"

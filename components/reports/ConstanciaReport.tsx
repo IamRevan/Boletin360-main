@@ -9,11 +9,19 @@ interface ActaReportProps {
 export const ConstanciaReport: React.FC<ActaReportProps> = ({ data }) => {
     const { grado, seccion, anoEscolar, acta } = data;
 
-    // Obtener fecha actual
     const fecha = new Date();
     const dia = fecha.getDate();
     const mes = fecha.toLocaleString('es-VE', { month: 'long' });
     const anio = fecha.getFullYear();
+
+    if (!acta || acta.length === 0) {
+        return (
+            <div className="bg-yellow-900/20 border border-yellow-700 text-yellow-200 p-8 rounded-xl text-center">
+                <h3 className="text-xl font-bold mb-2">Sin datos</h3>
+                <p>No se encontraron estudiantes para generar la constancia. Verifique que el estudiante tenga un grado asignado.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full max-w-[21.59cm] mx-auto print:max-w-none">
@@ -24,9 +32,7 @@ export const ConstanciaReport: React.FC<ActaReportProps> = ({ data }) => {
                 >
                     {/* Header */}
                     <div className="flex justify-between items-start mb-8">
-                        <div className="w-24 h-24 flex items-center justify-center">
-                            {/* Escudo si disponible */}
-                        </div>
+                        <div className="w-24 h-24 flex items-center justify-center" />
                         <div className="text-center flex-1 mx-4">
                             <h2 className="font-bold text-xs uppercase tracking-wide">República Bolivariana de Venezuela</h2>
                             <h2 className="font-bold text-xs uppercase tracking-wide">Ministerio del Poder Popular para la Educación</h2>
@@ -46,7 +52,7 @@ export const ConstanciaReport: React.FC<ActaReportProps> = ({ data }) => {
                     {/* Cuerpo */}
                     <div className="text-justify leading-loose text-lg mb-16 px-8">
                         <p className="indent-8 mb-4">
-                            Quien suscribe, Director(a) de la <strong>Unidad Educativa Nacional "Pedro Emilio Coll"</strong>,
+                            Quien suscribe, Director(a) de la <strong>Unidad Educativa Nacional &ldquo;Pedro Emilio Coll&rdquo;</strong>,
                             por medio de la presente hace constar que el(la) estudiante:
                         </p>
 
@@ -56,8 +62,8 @@ export const ConstanciaReport: React.FC<ActaReportProps> = ({ data }) => {
 
                         <p className="indent-8 mb-4">
                             Titular de la Cédula de Identidad Nº <strong>V-{student.cedula}</strong>,
-                            se encuentra inscrito(a) en este plantel cursando el <strong>{grado.nombreGrado}</strong> año de Educación Media General,
-                            correspondiente al Año Escolar <strong>{anoEscolar.nombre}</strong>.
+                            se encuentra inscrito(a) en este plantel cursando el <strong>{grado?.nombreGrado || 'N/P'}</strong> año de Educación Media General,
+                            correspondiente al Año Escolar <strong>{anoEscolar?.nombre || 'N/P'}</strong>.
                         </p>
 
                         <p className="indent-8">

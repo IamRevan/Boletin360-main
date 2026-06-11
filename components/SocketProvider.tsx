@@ -24,8 +24,11 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-        // In production, this should be an env var
-        const socketInstance = io("http://localhost:3001", {
+        // Dynamic socket URL based on env or window host (to support production server deployment on LAN)
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 
+            (typeof window !== "undefined" ? window.location.origin : "http://localhost:3001");
+
+        const socketInstance = io(socketUrl, {
             transports: ["websocket"],
             autoConnect: true,
             auth: {

@@ -13,6 +13,8 @@ import { Skeleton } from './ui/Skeleton';
 import { CardSkeleton } from './ui/CardSkeleton';
 import { TableSkeleton } from './ui/TableSkeleton';
 import { StatisticsCharts } from './StatisticsCharts';
+import { useToast } from '../state/ToastContext';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 
 interface DashboardPageProps { }
 
@@ -138,6 +140,8 @@ const RecentStudentsList: React.FC<{
 export const DashboardPage: React.FC<DashboardPageProps> = () => {
   const { students, materias, teachers, grados, secciones, currentUser, isLoading } = useAppState();
   const dispatch = useAppDispatch();
+  const { addToast } = useToast();
+  const { showConfirm, DialogComponent } = useConfirmDialog();
 
   // If loading and we have no currentUser, we might be in initial auth check,
   // but useAppState().isLoading handles Data. Auth check might be separate.
@@ -183,14 +187,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
 
   // Handler para eliminar estudiante
   const onDeleteStudent = async (studentId: number) => {
-    if (window.confirm('¿Está seguro que desea eliminar este estudiante? Esta acción no se puede deshacer.')) {
-      try {
-        await api.deleteStudent(studentId);
-        dispatch({ type: ActionType.DELETE_STUDENT, payload: studentId });
-      } catch (error) {
-        console.error("Failed to delete student", error);
-        alert("Error al eliminar estudiante");
-      }
+    const confirmed = await showConfirm({
+      title: 'Eliminar Estudiante',
+      message: '¿Está seguro que desea eliminar este estudiante? Esta acción no se puede deshacer.',
+    });
+    if (!confirmed) return;
+    try {
+      await api.deleteStudent(studentId);
+      dispatch({ type: ActionType.DELETE_STUDENT, payload: studentId });
+      addToast('Estudiante eliminado correctamente', 'success');
+    } catch (error) {
+      console.error("Failed to delete student", error);
+      addToast('Error al eliminar estudiante', 'error');
     }
   };
 
@@ -308,6 +316,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
         onDelete={onDeleteStudent}
         isLoading={isLoading}
       />
+      <DialogComponent />
     </div>
   );
 }

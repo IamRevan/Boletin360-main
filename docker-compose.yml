@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-boletin360}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     deploy:
       resources:
         limits:
@@ -21,6 +23,11 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
@@ -39,7 +46,8 @@ services:
     volumes:
       - ./server/prisma:/app/prisma
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     deploy:
       resources:
         limits:

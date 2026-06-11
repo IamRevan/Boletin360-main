@@ -19,7 +19,7 @@ export const idempotencyMiddleware = async (req: Request, res: Response, next: N
     }
 
     try {
-        const existingRecord = await (prisma as any).idempotencyKey.findUnique({
+        const existingRecord = await prisma.idempotencyKey.findUnique({
             where: { key }
         });
 
@@ -37,7 +37,7 @@ export const idempotencyMiddleware = async (req: Request, res: Response, next: N
             // Save the response for future retries
             // We only save successful or operational error responses (2xx, 4xx)
             if (res.statusCode >= 200 && res.statusCode < 500) {
-                (prisma as any).idempotencyKey.create({
+                prisma.idempotencyKey.create({
                     data: {
                         key,
                         responseStatus: res.statusCode,

@@ -106,12 +106,14 @@ export const useConfirmDialog = () => {
         title: string;
         message: string;
         variant: 'danger' | 'warning' | 'info';
+        resolve: (value: boolean) => void;
         onConfirm: () => void;
     }>({
         isOpen: false,
         title: '',
         message: '',
         variant: 'danger',
+        resolve: () => { },
         onConfirm: () => { },
     });
 
@@ -126,6 +128,7 @@ export const useConfirmDialog = () => {
                 title: options.title,
                 message: options.message,
                 variant: options.variant || 'danger',
+                resolve,
                 onConfirm: () => {
                     setDialogState(prev => ({ ...prev, isOpen: false }));
                     resolve(true);
@@ -135,10 +138,13 @@ export const useConfirmDialog = () => {
     };
 
     const closeDialog = () => {
-        setDialogState(prev => ({ ...prev, isOpen: false }));
+        setDialogState(prev => {
+            prev.resolve(false);
+            return { ...prev, isOpen: false };
+        });
     };
 
-    const DialogComponent = () => (
+    const DialogComponent = (props?: { confirmText?: string; cancelText?: string }) => (
         <ConfirmDialog
             isOpen={dialogState.isOpen}
             title={dialogState.title}
@@ -146,7 +152,8 @@ export const useConfirmDialog = () => {
             variant={dialogState.variant}
             onConfirm={dialogState.onConfirm}
             onCancel={closeDialog}
-            confirmText="Eliminar"
+            confirmText={props?.confirmText || 'Eliminar'}
+            cancelText={props?.cancelText || 'Cancelar'}
         />
     );
 

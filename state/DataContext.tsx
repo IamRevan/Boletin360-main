@@ -225,7 +225,8 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                 studentIds.forEach((studentId: number) => {
                     const calificacionIndex = newCalificaciones.findIndex(c =>
                         c.studentId === studentId && c.materiaId === materiaId && c.anoEscolarId === anoEscolarId
-                    ); const newEvaluation: Evaluacion = {
+                    );
+                    const newEvaluation: Evaluacion = {
                         id: `uuid-${studentId}-${descripcion}-${Date.now()}-${Math.random()}`,
                         descripcion,
                         ponderacion,
@@ -236,12 +237,6 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                         if (!updatedCalificacion[lapsoKey].some(e => e.descripcion === descripcion)) {
                             updatedCalificacion[lapsoKey] = [...updatedCalificacion[lapsoKey], newEvaluation];
                             newCalificaciones[calificacionIndex] = updatedCalificacion;
-                            api.syncGrades({
-                                studentId, materiaId, anoEscolarId,
-                                lapso1: updatedCalificacion.lapso1,
-                                lapso2: updatedCalificacion.lapso2,
-                                lapso3: updatedCalificacion.lapso3
-                            }).catch(console.error);
                         }
                     } else {
                         const newCalificacion: Calificacion = {
@@ -250,15 +245,17 @@ const dataReducer = (state: DataState, action: Action): DataState => {
                         };
                         newCalificacion[lapsoKey].push(newEvaluation);
                         newCalificaciones.push(newCalificacion);
-                        api.syncGrades({
-                            studentId, materiaId, anoEscolarId,
-                            lapso1: newCalificacion.lapso1,
-                            lapso2: newCalificacion.lapso2,
-                            lapso3: newCalificacion.lapso3
-                        }).catch(console.error);
                     }
                 });
             });
+
+            // Single batch API call instead of per-student requests
+            api.syncBatchGrades({
+                materiaId, anoEscolarId, lapso,
+                evaluations: evaluations.map((e: any) => ({ descripcion: e.descripcion, ponderacion: e.ponderacion })),
+                studentIds
+            }).catch(console.error);
+
             return { ...state, calificaciones: newCalificaciones, modalState: initialDataState.modalState };
         }
         case ActionType.UPDATE_EVALUATION_GRADE: {
